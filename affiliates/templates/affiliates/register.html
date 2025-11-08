@@ -25,31 +25,3 @@
   </form>
 </body>
 </html>
-```// filepath: /workspaces/codespaces-django/affiliates/templates/affiliates/register.html
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Register</title>
-</head>
-<body>
-  <h1>Register</h1>
-
-  {% if form.errors %}
-    <div style="color: red;">
-      {{ form.non_field_errors }}
-      {% for field in form %}
-        {% for error in field.errors %}
-          <div>{{ field.label }}: {{ error }}</div>
-        {% endfor %}
-      {% endfor %}
-    </div>
-  {% endif %}
-
-  <form method="post" action="">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Register</button>
-  </form>
-</body>
-</html>
