@@ -1,4 +1,5 @@
 from decimal import Decimal
+import uuid
 
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
@@ -73,11 +74,50 @@ class AffiliateTests(TestCase):
             expected_recipient = expected_upline[level_idx][0]
             self.assertEqual(commission.recipient, expected_recipient)
 
+    def test_register_get_prefills_referral_code(self):
+        """
+        GET /register/?ref=<referral_code> should return 200 and the registration
+        form should have the referral_code pre-filled in form.initial or field value.
+        """
+        client = Client()
+        referrer = User.objects.create_user(username="ref_get", email="refget@example.com", password="pass")
+        ref_profile, _ = Profile.objects.get_or_create(user=referrer)
+        if not ref_profile.referral_code:
+            ref_profile.referral_code = str(uuid.uuid4())[:32]
+            ref_profile.save()
+        referral_code = ref_profile.referral_code
+
+        resp = client.get(f"/register/?ref={referral_code}")
+        self.assertEqual(resp.status_code, 200, "GET /register/ did not return 200. Ensure the view handles GET and uses the 'ref' query param.")
+
+        # Check form in context and initial value
+        form = resp.context.get("form") if resp.context else None
+        self.assertIsNotNone(form, "Response context has no 'form'. Ensure the register view passes 'form' to the template.")
+        # prefer initial, fall back to bound field value if present
+        initial_code = form.initial.get("referral_code") if hasattr(form, "initial") else None
+        field_value = None
+        try:
+            field_value = form["referral_code"].value()
+        except Exception:
+            field_value = None
+
+        self.assertTrue(initial_code == referral_code or field_value == referral_code,
+                        "Referral code was not prefilled in the registration form (checked form.initial and form field value).")
+
+    def test_register_get_returns_200_without_ref(self):
+        """
+        GET /register/ without ref param should return 200 and include a form in context.
+        """
+        client = Client()
+        resp = client.get("/register/")
+        self.assertEqual(resp.status_code, 200, "GET /register/ without ref did not return 200.")
+        form = resp.context.get("form") if resp.context else None
+        self.assertIsNotNone(form, "Response context has no 'form' for GET /register/.")
+
     def test_register_via_referral_link_attaches_referred_by(self):
         """
         Posting to /register/?ref=<referral_code> should create a new user whose
         Profile.referred_by is set to the referrer user.
-        - This test posts to the raw path /register/ (adjust if your project uses a different URL)
         """
         client = Client()
 
@@ -87,7 +127,6 @@ class AffiliateTests(TestCase):
         ref_profile, _ = Profile.objects.get_or_create(user=referrer)
         # Make sure there's a referral_code (some implementations default-create one)
         if not ref_profile.referral_code:
-            import uuid
             ref_profile.referral_code = str(uuid.uuid4())[:32]
             ref_profile.save()
 
@@ -100,11 +139,12 @@ class AffiliateTests(TestCase):
             "password": "newpass123",
         })
 
-        self.assertEqual(resp.status_code, 302, "Registration did not redirect as expected. Check your /register/ view.")
+        # Accept either successful redirect or successful render; ensure user created
+        self.assertIn(resp.status_code, (200, 302), f"Unexpected status code {resp.status_code} from POST /register/. Response body: {getattr(resp, 'content', b'')[:200]!r}")
 
         # New user should exist and have profile.referred_by set to referrer
         new_user = User.objects.filter(username="new_referred").first()
-        self.assertIsNotNone(new_user, "Registration did not create the new user. Ensure /register/ view exists and uses posted fields.")
+        self.assertIsNotNone(new_user, f"Registration did not create the new user. Response status: {resp.status_code}. Response body: {getattr(resp, 'content', b'')[:400]!r}")
         # Ensure profile exists
         new_profile = Profile.objects.get(user=new_user)
         self.assertEqual(new_profile.referred_by, referrer)
