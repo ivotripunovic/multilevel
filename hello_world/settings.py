@@ -44,7 +44,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_browser_reload",
-    'affiliates.apps.AffiliatesConfig',
+    "affiliates.apps.AffiliatesConfig",
+    "payments.apps.PaymentsConfig",
 ]
 
 MIDDLEWARE = [
