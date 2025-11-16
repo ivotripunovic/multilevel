@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "django_browser_reload",
     "affiliates.apps.AffiliatesConfig",
     "payments.apps.PaymentsConfig",
+    "accounts.apps.AccountsConfig",  # <-- add this
 ]
 
 MIDDLEWARE = [
