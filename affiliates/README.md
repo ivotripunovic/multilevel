@@ -15,7 +15,8 @@ Kada registrujemo novog korisnika, ko je koga preporucio u sistem. Imamo podatak
 Zbog toga moramo imati racunovodstvo svakog korisnika kada je dobio deo registracije i kada je uzeo deo te zarade. Prikaz korisnikovih komisija i isplata.
 
 ## TODO
-- napravi registraciju korisnika
++ napravi registraciju korisnika
+- logovanje registrovanog korisnika i prikaz affiliate linka
 - napravi registracija affiliate korisnika
 - napravi uplate za sve nivoe korisnika
 - napraviti proveru da li su sredstva legla na racun u tek onda aktivirati da je uplata prosla korisniku u admin delu
