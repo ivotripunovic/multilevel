@@ -16,8 +16,8 @@ Zbog toga moramo imati racunovodstvo svakog korisnika kada je dobio deo registra
 
 ## TODO
 + napravi registraciju korisnika
-- logovanje registrovanog korisnika i prikaz affiliate linka
-- napravi registracija affiliate korisnika
++ logovanje registrovanog korisnika i prikaz affiliate linka
++ napravi registracija affiliate korisnika
 - napravi uplate za sve nivoe korisnika
 - napraviti proveru da li su sredstva legla na racun u tek onda aktivirati da je uplata prosla korisniku u admin delu
 - tri nivoa 15%, 4%, 1%
