@@ -74,9 +74,9 @@ class AffiliateTests(TestCase):
             expected_recipient = expected_upline[level_idx][0]
             self.assertEqual(commission.recipient, expected_recipient)
 
-    def test_register_get_prefills_referral_code(self):
+    def test_affiliates_get_prefills_referral_code(self):
         """
-        GET /register/?ref=<referral_code> should return 200 and the registration
+        GET /affiliates/?ref=<referral_code> should return 200 and the registration
         form should have the referral_code pre-filled in form.initial or field value.
         """
         client = Client()
@@ -87,12 +87,12 @@ class AffiliateTests(TestCase):
             ref_profile.save()
         referral_code = ref_profile.referral_code
 
-        resp = client.get(f"/register/?ref={referral_code}")
-        self.assertEqual(resp.status_code, 200, "GET /register/ did not return 200. Ensure the view handles GET and uses the 'ref' query param.")
+        resp = client.get(f"/affiliates/?ref={referral_code}")
+        self.assertEqual(resp.status_code, 200, "GET /affiliates/ did not return 200. Ensure the view handles GET and uses the 'ref' query param.")
 
         # Check form in context and initial value
         form = resp.context.get("form") if resp.context else None
-        self.assertIsNotNone(form, "Response context has no 'form'. Ensure the register view passes 'form' to the template.")
+        self.assertIsNotNone(form, "Response context has no 'form'. Ensure the affiliates view passes 'form' to the template.")
         # prefer initial, fall back to bound field value if present
         initial_code = form.initial.get("referral_code") if hasattr(form, "initial") else None
         field_value = None
@@ -104,19 +104,19 @@ class AffiliateTests(TestCase):
         self.assertTrue(initial_code == referral_code or field_value == referral_code,
                         "Referral code was not prefilled in the registration form (checked form.initial and form field value).")
 
-    def test_register_get_returns_200_without_ref(self):
+    def test_affiliates_get_returns_200_without_ref(self):
         """
-        GET /register/ without ref param should return 200 and include a form in context.
+        GET /affiliates/ without ref param should return 200 and include a form in context.
         """
         client = Client()
-        resp = client.get("/register/")
-        self.assertEqual(resp.status_code, 200, "GET /register/ without ref did not return 200.")
+        resp = client.get("/affiliates/")
+        self.assertEqual(resp.status_code, 200, "GET /affiliates/ without ref did not return 200.")
         form = resp.context.get("form") if resp.context else None
-        self.assertIsNotNone(form, "Response context has no 'form' for GET /register/.")
+        self.assertIsNotNone(form, "Response context has no 'form' for GET /affiliates/.")
 
-    def test_register_via_referral_link_attaches_referred_by(self):
+    def test_affiliates_via_referral_link_attaches_referred_by(self):
         """
-        Posting to /register/?ref=<referral_code> should create a new user whose
+        Posting to /affiliates/?ref=<referral_code> should create a new user whose
         Profile.referred_by is set to the referrer user.
         """
         client = Client()
@@ -133,14 +133,14 @@ class AffiliateTests(TestCase):
         referral_code = ref_profile.referral_code
 
         # Post registration form; adjust form fields if your registration form differs
-        resp = client.post(f"/register/?ref={referral_code}", data={
+        resp = client.post(f"/affiliates/?ref={referral_code}", data={
             "username": "new_referred",
             "email": "new@referred.example",
             "password": "newpass123",
         })
 
         # Accept either successful redirect or successful render; ensure user created
-        self.assertIn(resp.status_code, (200, 302), f"Unexpected status code {resp.status_code} from POST /register/. Response body: {getattr(resp, 'content', b'')[:200]!r}")
+        self.assertIn(resp.status_code, (200, 302), f"Unexpected status code {resp.status_code} from POST /affiliates/. Response body: {getattr(resp, 'content', b'')[:200]!r}")
 
         # New user should exist and have profile.referred_by set to referrer
         new_user = User.objects.filter(username="new_referred").first()
