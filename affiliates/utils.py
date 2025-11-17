@@ -42,3 +42,32 @@ def distribute_commissions(source_user, amount):
                 source_user=source_user,
                 level=level
             )
+
+def get_downline_users(user, max_levels=None):
+    """
+    Return a list of (user, level) for all users referred (directly or indirectly)
+    by `user`. Level 1 = direct referrals, 2 = referrals of referrals, etc.
+    Breadth-first traversal is used so nearer referrals come first.
+    """
+    from collections import deque
+    from .models import Profile
+
+    if max_levels is None:
+        max_levels = len(LEVEL_RATES) if 'LEVEL_RATES' in globals() else None
+
+    results = []
+    q = deque()
+    # start from the root user at level 0
+    q.append((user, 0))
+
+    while q:
+        parent, lvl = q.popleft()
+        next_level = lvl + 1
+        if max_levels is not None and next_level > max_levels:
+            continue
+        # find direct referrals of `parent`
+        for prof in Profile.objects.filter(referred_by=parent).select_related("user"):
+            u = prof.user
+            results.append((u, next_level))
+            q.append((u, next_level))
+    return results

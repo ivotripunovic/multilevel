@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Profile - {{ user.username }}</title>
+</head>
+<body>
+  <h1>Profile</h1>
+
+  <p><strong>Username:</strong> {{ user.username }}</p>
+  <p><strong>Email:</strong> {{ user.email }}</p>
+  <p><strong>Joined:</strong> {{ user.date_joined }}</p>
+
+  <h2>Affiliate</h2>
+  <p><strong>Referral code:</strong> {{ profile.referral_code }}</p>
+  <p>
+    <strong>Affiliate registration link:</strong><br>
+    <a href="{{ affiliate_link }}">{{ affiliate_link }}</a>
+  </p>
+
+  <h3>Referrals</h3>
+  <p>Direct referrals: {{ direct_referral_count }} — Total downline: {{ total_referral_count }}</p>
+
+  {% if downline %}
+    <table border="1" cellpadding="6" cellspacing="0">
+      <thead>
+        <tr>
+          <th>Level</th>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Joined</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in downline %}
+          <tr>
+            <td>{{ item.level }}</td>
+            <td>{{ item.user.username }}</td>
+            <td>{{ item.user.email }}</td>
+            <td>{{ item.user.date_joined }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No referrals yet.</p>
+  {% endif %}
+
+  <p><a href="{% url 'home' %}">Back to home</a></p>
+</body>
+</html>
