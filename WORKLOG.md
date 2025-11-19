@@ -1,5 +1,8 @@
 # Worklog 
 
+## 20251119 Wednesday
+- 2*pomodoros user making a monthly payment
+
 ## 20251118 Tuesday
 - 2*pomodoros deploy to server setup
 
