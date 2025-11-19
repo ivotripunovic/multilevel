@@ -1,5 +1,5 @@
 from django.conf import settings
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from .models import Commission, Profile
 
 # Example level rates; tune per business rules or store in DB/config
@@ -34,7 +34,7 @@ def distribute_commissions(source_user, amount):
             rate = LEVEL_RATES[level - 1]
         except IndexError:
             break
-        commission_amount = (amt * rate).quantize(Decimal('0.01'))
+        commission_amount = (amt * rate).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
         if commission_amount > 0:
             Commission.objects.create(
                 recipient=recipient,

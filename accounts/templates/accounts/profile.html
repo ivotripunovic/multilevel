@@ -46,6 +46,13 @@
     <p>No referrals yet.</p>
   {% endif %}
 
+  <h3>Payments</h3>
+  <form method="post" action="{% url 'payments-create' %}">
+    {% csrf_token %}
+    <input type="hidden" name="amount" value="100.00">
+    <button type="submit">Pay $100 (simulate monthly payment)</button>
+  </form>
+
   <p><a href="{% url 'home' %}">Back to home</a></p>
 </body>
 </html>

@@ -17,9 +17,11 @@ def register_view(request):
     """
     Register view: supports ?ref=<referral_code> and POST field referral_code.
     On successful registration, attaches Profile.referred_by if referral matches.
+    Preserves referral_code in form.initial on validation errors.
     """
-    initial = {}
+    # determine referral code from GET or POST
     ref = request.GET.get("ref") or request.POST.get("referral_code") or request.POST.get("ref")
+    initial = {}
     if ref:
         initial["referral_code"] = ref
 
@@ -27,7 +29,7 @@ def register_view(request):
         form = RegisterForm(request.POST)
         if form.is_valid():
             user = form.save(commit=False)
-            user.email = form.cleaned_data["email"]
+            user.email = form.cleaned_data.get("email", "")
             user.save()
             # Ensure Profile exists
             profile, _ = Profile.objects.get_or_create(user=user)
@@ -40,9 +42,17 @@ def register_view(request):
                     profile.save()
                 except Profile.DoesNotExist:
                     pass
-            # log in and redirect
             login(request, user)
             return redirect("home")
+        else:
+            # Preserve referral_code in form.initial so templates/tests can read it after validation errors
+            try:
+                form.initial = dict(form.initial) if form.initial is not None else {}
+            except Exception:
+                form.initial = {}
+            # prefer posted value, fallback to ref
+            posted_ref = request.POST.get("referral_code") or request.POST.get("ref")
+            form.initial["referral_code"] = posted_ref or ref or ""
     else:
         form = RegisterForm(initial=initial)
     return render(request, "accounts/register.html", {"form": form})
