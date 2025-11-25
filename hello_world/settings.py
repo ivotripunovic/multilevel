@@ -46,7 +46,8 @@ INSTALLED_APPS = [
     "django_browser_reload",
     "affiliates.apps.AffiliatesConfig",
     "payments.apps.PaymentsConfig",
-    "accounts.apps.AccountsConfig",  # <-- add this
+    "accounts.apps.AccountsConfig",
+    "subscriptions.apps.SubscriptionsConfig",
 ]
 
 MIDDLEWARE = [
@@ -150,3 +151,10 @@ if 'test' in sys.argv or 'pytest' in sys.argv[0]: # Adjust condition as needed
     PASSWORD_HASHERS = [
         'django.contrib.auth.hashers.MD5PasswordHasher',
     ]
+
+# Payment Gateway Configuration
+PAYMENT_GATEWAY = config("PAYMENT_GATEWAY", default="dummy")
+PAYMENT_GATEWAY_CONFIG = {
+    "api_key": config("PAYMENT_GATEWAY_API_KEY", default=""),
+    "webhook_secret": config("PAYMENT_GATEWAY_WEBHOOK_SECRET", default=""),
+}
