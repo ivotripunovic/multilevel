@@ -1,12 +1,17 @@
-# Worklog 
+# Workload Plan: Multilevel
 
-## 20251119 Wednesday
+
+## Week 48 - 2025-11-23
+
+## Week 47 - 2025-11-17
+
+### Wednesday, Nov-19
 - 2*pomodoros user making a monthly payment
 
-## 20251118 Tuesday
+### Tuesday, Nov-18
 - 2*pomodoros deploy to server setup
 
-## 20251117 Monday 
+### Monday, Nov-17
 6*25min pomodoros
 - register user, logic and page
 - login 
