@@ -2,7 +2,6 @@ from decimal import Decimal
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
-from djmoney.models.fields import MoneyField
 
 
 class Company(models.Model):
@@ -45,9 +44,10 @@ class Payment(models.Model):
 
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="payments")
     payer = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="payments_made")
-    amount = MoneyField(max_digits=14, decimal_places=2, default_currency="USD")  # stores value + currency
-    fee = MoneyField(max_digits=14, decimal_places=2, default_currency="USD")
-    status = models.CharField(max_length=32, default="pending")
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    currency = models.CharField(max_length=10, default="USD")
+    fee = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
     external_id = models.CharField(max_length=255, blank=True, null=True, help_text="Gateway transaction id")
     metadata = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
@@ -58,7 +58,7 @@ class Payment(models.Model):
 
     @property
     def net_amount(self):
-        return (self.amount.amount or Decimal("0.00")) - (self.fee.amount or Decimal("0.00"))
+        return (self.amount or Decimal("0.00")) - (self.fee or Decimal("0.00"))
 
     def __str__(self):
         return f"Payment {self.id} {self.company} {self.amount} {self.currency}"

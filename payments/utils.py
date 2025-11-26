@@ -1,5 +1,4 @@
-from decimal import Decimal, ROUND_HALF_UP
-import requests, os, time
+from decimal import Decimal
 from django.utils import timezone
 from django.db import transaction as db_transaction
 
@@ -8,33 +7,6 @@ from .models import Payment, Transaction, CompanyRevenue
 
 RATES_CACHE_TTL = 60 * 60  # 1 hour
 _rates_cache = {"ts": 0, "base": "USD", "rates": {}}
-
-
-def fetch_rates(base="USD"):
-    # Minimal fetch from exchangerate.host (no API key) — replace with your provider.
-    now = time.time()
-    if _rates_cache["ts"] + RATES_CACHE_TTL > now and _rates_cache["base"] == base:
-        return _rates_cache["rates"]
-    url = f"https://api.exchangerate.host/latest?base={base}"
-    resp = requests.get(url, timeout=10)
-    resp.raise_for_status()
-    data = resp.json()
-    rates = data.get("rates", {})
-    _rates_cache.update({"ts": now, "base": base, "rates": rates})
-    return rates
-
-
-def convert(amount: Decimal, from_currency: str, to_currency: str, quantize_exp=Decimal("0.01")) -> dict:
-    """
-    Convert Decimal amount from from_currency to to_currency.
-    Returns dict with converted_amount (Decimal), rate (Decimal), ts (datetime).
-    """
-    if from_currency == to_currency:
-        return {"converted": amount.quantize(quantize_exp, rounding=ROUND_HALF_UP), "rate": Decimal("1"), "ts": timezone.now()}
-    rates = fetch_rates(base=from_currency)
-    rate = Decimal(str(rates.get(to_currency)))
-    converted = (amount * rate).quantize(quantize_exp, rounding=ROUND_HALF_UP)
-    return {"converted": converted, "rate": rate, "ts": timezone.now()}
 
 
 def record_payment(company, amount, payer=None, currency="USD", fee=Decimal("0.00"), external_id=None, metadata=None):
