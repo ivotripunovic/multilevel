@@ -9,33 +9,20 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         plans_data = [
             {
-                "key": "monthly_pro",
-                "name": "Pro Plan - Monthly",
-                "price": Decimal("9.99"),
-                "billing_period": "monthly",
-                "active": True,
-            },
-            {
-                "key": "yearly_pro",
-                "name": "Pro Plan - Yearly",
-                "price": Decimal("99.99"),
-                "billing_period": "yearly",
-                "active": True,
-            },
-            {
-                "key": "monthly_basic",
-                "name": "Basic Plan - Monthly",
-                "price": Decimal("4.99"),
-                "billing_period": "monthly",
-                "active": True,
-            },
-            {
-                "key": "yearly_basic",
-                "name": "Basic Plan - Yearly",
+                "key": "monthly_vip",
+                "name": "VIP Plan - Monthly",
                 "price": Decimal("49.99"),
+                "billing_period": "monthly",
+                "active": True,
+            },
+            {
+                "key": "yearly_vip",
+                "name": "VIP Plan - Yearly",
+                "price": Decimal("499.99"),
                 "billing_period": "yearly",
                 "active": True,
             },
+    
         ]
 
         for plan_data in plans_data:
