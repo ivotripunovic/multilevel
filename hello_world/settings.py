@@ -145,6 +145,51 @@ MEDIA_ROOT = BASE_DIR / "hello_world" / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+
+# LOGGING = {
+#     "version": 1,
+#     "disable_existing_loggers": False,
+#     "formatters": {
+#         "verbose": {
+#             "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+#             "style": "{",
+#         },
+#         "simple": {
+#             "format": "{levelname} {message}",
+#             "style": "{",
+#         },
+#     },
+#     "handlers": {
+#         "console": {
+#             "level": "DEBUG",  # Set handler level to DEBUG
+#             "class": "logging.StreamHandler",
+#             "formatter": "simple",
+#         },
+#         "file": {
+#             "level": "DEBUG",  # Set handler level to DEBUG
+#             "class": "logging.FileHandler",
+#             "filename": "debug.log",  # Specify your log file path
+#             "formatter": "verbose",
+#         },
+#     },
+#     "loggers": {
+#         "django": {
+#             "handlers": ["console", "file"],  # Use both console and file handlers
+#             "level": "DEBUG",  # Set Django logger level to DEBUG
+#             "propagate": False,
+#         },
+#         "affiliates": {  # Replace 'your_app_name' with your actual app name
+#             "handlers": ["console", "file"],
+#             "level": "DEBUG",
+#             "propagate": False,
+#         },
+#         "": {  # Root logger, captures messages from all other loggers
+#             "handlers": ["console"],
+#             "level": "INFO",  # You might want a higher level for the root logger
+#         },
+#     },
+# }
+
 # Speeding up tests
 import sys
 if 'test' in sys.argv or 'pytest' in sys.argv[0]: # Adjust condition as needed

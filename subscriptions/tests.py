@@ -279,19 +279,34 @@ class CreatorSubscriptionWithAffiliatesTests(TestCase):
         )
 
         # Create profiles
-        self.creator_profile, _ = Profile.objects.get_or_create(user=self.creator)
-        self.subscriber_profile, _ = Profile.objects.get_or_create(user=self.subscriber)
-        self.affiliate_profile, _ = Profile.objects.get_or_create(user=self.affiliate)
-
-        # Set referral: subscriber was referred by affiliate
-        self.subscriber_profile.referred_by = self.affiliate
-        self.subscriber_profile.save()
+        Profile.objects.get_or_create(user=self.creator)
+        Profile.objects.get_or_create(user=self.affiliate)
+        
+        # Create subscriber profile and explicitly set referred_by
+        subscriber_prof, _ = Profile.objects.get_or_create(user=self.subscriber)
+        subscriber_prof.referred_by = self.affiliate
+        subscriber_prof.save()
+        
+        # Refresh from DB to ensure relationship is loaded
+        self.subscriber_profile = Profile.objects.select_related("referred_by").get(user=self.subscriber)
+        self.affiliate_profile = Profile.objects.select_related("referred_by").get(user=self.affiliate)
 
     def test_creator_subscription_with_affiliate_commissions(self):
         """
         When a subscriber pays a creator and gets approved,
         commissions should distribute to the subscriber's upline (affiliate).
         """
+        # Debug: verify the relationship exists in DB
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+        
+        # Verify the upline is set up correctly
+        from affiliates import utils as aff_utils
+        from affiliates.models import Commission
+        
+        upline = aff_utils.get_upline_users(self.subscriber)
+        self.assertGreater(len(upline), 0, f"Upline not set up. subscriber_profile.referred_by={self.subscriber_profile.referred_by}, upline={upline}")
+        
         csub = CreatorSubscription.objects.create(
             subscriber=self.subscriber,
             creator=self.creator,
@@ -301,8 +316,8 @@ class CreatorSubscriptionWithAffiliatesTests(TestCase):
         )
 
         # Simulate admin approval and commission distribution
-        from affiliates import utils as aff_utils
-        aff_utils.distribute_commissions(self.subscriber, Decimal("10.00"))
+        created = aff_utils.distribute_commissions(self.subscriber, Decimal("10.00"))
+        self.assertGreater(created, 0, "distribute_commissions returned 0 created commissions")
 
         # Check that commissions were created
         commissions = Commission.objects.filter(source_user=self.subscriber)
