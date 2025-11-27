@@ -11,8 +11,12 @@ from django.db.models import Sum, Q
 from affiliates.models import Profile, Commission
 from affiliates import utils as aff_utils
 from subscriptions.models import Plan, Subscription
+from subscriptions.models import CreatorSubscription
 
 from .forms import RegisterForm, LoginForm
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 @require_http_methods(["GET", "POST"])
 def register_view(request):
@@ -102,6 +106,23 @@ def profile_view(request):
     subscribed_plan_ids = Subscription.objects.filter(user=request.user).values_list("plan_id")
     available_plans = Plan.objects.filter(active=True).exclude(id__in=subscribed_plan_ids)
     
+    # Get active creator subscriptions
+    active_creator_subscriptions = CreatorSubscription.objects.filter(
+        subscriber=request.user,
+        status=CreatorSubscription.STATUS_ACTIVE,
+        pending_approval=False
+    )
+    
+    # Get available creators (users with profiles, excluding current user and already subscribed)
+    subscribed_creator_ids = active_creator_subscriptions.values_list("creator_id")
+    available_creators = User.objects.filter(
+        profile__isnull=False
+    ).exclude(
+        id__in=subscribed_creator_ids
+    ).exclude(
+        id=request.user.id
+    ).order_by("-date_joined")[:20]
+    
     # Affiliate data
     direct_referral_count = Profile.objects.filter(referred_by=request.user).count()
     all_downline = aff_utils.get_downline_users(request.user, max_levels=10)
@@ -116,7 +137,7 @@ def profile_view(request):
     
     # Build downline with levels
     downline = []
-    for user, level in all_downline[:50]:  # limit to first 50
+    for user, level in all_downline[:50]:
         downline.append({"user": user, "level": level})
     
     # Build affiliate link
@@ -127,6 +148,8 @@ def profile_view(request):
         "active_subscriptions": active_subscriptions,
         "pending_subscriptions": pending_subscriptions,
         "available_plans": available_plans,
+        "active_creator_subscriptions": active_creator_subscriptions,
+        "available_creators": available_creators,
         "direct_referral_count": direct_referral_count,
         "total_referral_count": total_referral_count,
         "downline": downline,

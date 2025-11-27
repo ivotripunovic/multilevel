@@ -8,12 +8,15 @@ from django.views.decorators.http import require_POST
 from django.urls import reverse
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
 from django.contrib import messages
 
 from payments.gateways.registry import get_gateway
-from .models import Plan, Subscription
+from .models import CreatorSubscription, Plan, Subscription
 from affiliates import utils as aff_utils
 from payments.utils import record_payment, complete_payment
+
+User = get_user_model()
 
 # create checkout session (generic)
 def create_checkout_session_for_plan(request, plan_key):
@@ -40,8 +43,6 @@ def gateway_webhook(request):
         user_id = data.get("client_reference_id") or data.get("metadata", {}).get("user_id")
         plan_key = data.get("metadata", {}).get("plan_key")
         if user_id and plan_key:
-            from django.contrib.auth import get_user_model
-            User = get_user_model()
             try:
                 user = User.objects.get(id=int(user_id))
                 plan = Plan.objects.get(key=plan_key)
@@ -76,8 +77,6 @@ def gateway_webhook(request):
             user_id = data.get("client_reference_id") or data.get("metadata", {}).get("user_id")
             plan_key = data.get("metadata", {}).get("plan_key")
             if user_id and plan_key:
-                from django.contrib.auth import get_user_model
-                User = get_user_model()
                 try:
                     user = User.objects.get(id=int(user_id))
                     plan = Plan.objects.get(key=plan_key)
@@ -112,4 +111,87 @@ def checkout_success(request):
 def checkout_cancel(request):
     """Handle canceled checkout."""
     messages.warning(request, "Subscription checkout was canceled.")
+    return redirect("accounts-profile")
+
+
+@login_required
+def subscribe_to_creator(request, creator_id):
+    """Subscribe to a creator's content for $4.99/month."""
+    creator = get_object_or_404(User, id=creator_id)
+    
+    # Prevent subscribing to yourself
+    if creator == request.user:
+        messages.error(request, "You cannot subscribe to yourself.")
+        return redirect("accounts-profile")
+    
+    # Check if already subscribed
+    existing = CreatorSubscription.objects.filter(
+        subscriber=request.user,
+        creator=creator,
+        status=CreatorSubscription.STATUS_ACTIVE,
+        pending_approval=False
+    ).first()
+    
+    if existing:
+        messages.warning(request, f"You are already subscribed to {creator.username}.")
+        return redirect("accounts-profile")
+    
+    # Create creator subscription
+    amount = Decimal("4.99")
+    csub, created = CreatorSubscription.objects.get_or_create(
+        subscriber=request.user,
+        creator=creator,
+        defaults={
+            "amount": amount,
+            "status": CreatorSubscription.STATUS_PENDING,
+            "pending_approval": True,  # require approval for now
+        }
+    )
+    
+    if created:
+        messages.success(
+            request,
+            f"Subscription to {creator.username} created! Awaiting payment confirmation."
+        )
+    else:
+        messages.info(request, f"Subscription to {creator.username} already exists.")
+    
+    return redirect("accounts-profile")
+
+
+@login_required
+def unsubscribe_creator(request, subscription_id):
+    """Cancel a creator subscription."""
+    csub = get_object_or_404(CreatorSubscription, id=subscription_id, subscriber=request.user)
+    creator_name = csub.creator.username
+    csub.status = CreatorSubscription.STATUS_CANCELED
+    csub.save()
+    messages.success(request, f"You have unsubscribed from {creator_name}.")
+    return redirect("accounts-profile")
+
+
+@login_required
+def approve_creator_subscription(request, subscription_id):
+    """Admin/user approves and pays for creator subscription."""
+    csub = get_object_or_404(CreatorSubscription, id=subscription_id, subscriber=request.user)
+    
+    # Create payment record
+    payment = record_payment(
+        company=None,
+        amount=csub.amount,
+        payer=request.user,
+        fee=Decimal("0.00")
+    )
+    complete_payment(payment)
+    
+    # Mark subscription as active and approved
+    csub.status = CreatorSubscription.STATUS_ACTIVE
+    csub.pending_approval = False
+    csub.last_paid_at = timezone.now()
+    csub.save()
+    
+    # Distribute affiliate commissions
+    aff_utils.distribute_commissions(request.user, csub.amount)
+    
+    messages.success(request, f"Subscription to {csub.creator.username} activated!")
     return redirect("accounts-profile")

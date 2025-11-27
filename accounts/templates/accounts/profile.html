@@ -133,6 +133,69 @@
     {% endif %}
   </div>
 
+  <!-- Creator Subscriptions Section -->
+  <div class="section">
+    <h2>Creator Subscriptions</h2>
+    
+    {% if active_creator_subscriptions %}
+      <h3>Subscriptions You're Paying For</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Creator</th>
+            <th>Monthly Fee</th>
+            <th>Status</th>
+            <th>Since</th>
+            <th>Last Paid</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for csub in active_creator_subscriptions %}
+            <tr>
+              <td>{{ csub.creator.username }}</td>
+              <td>${{ csub.amount }}</td>
+              <td><span style="color: green;">{{ csub.get_status_display }}</span></td>
+              <td>{{ csub.created_at|date:"Y-m-d" }}</td>
+              <td>{{ csub.last_paid_at|date:"Y-m-d"|default:"N/A" }}</td>
+              <td>
+                <a href="{% url 'subscriptions:unsubscribe_creator' csub.id %}" class="btn btn-danger">Unsubscribe</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>You are not subscribed to any creators yet.</p>
+    {% endif %}
+
+    <h3>Available Creators</h3>
+    {% if available_creators %}
+      <div class="plan-container">
+        {% for creator in available_creators %}
+          <div class="plan-card">
+            <h3>{{ creator.username }}</h3>
+            <div class="plan-price">$4.99</div>
+            <div class="plan-period">per month</div>
+            
+            <ul class="plan-features">
+              <li>✓ Exclusive Content</li>
+              <li>✓ Early Access</li>
+              <li>✓ Creator Updates</li>
+            </ul>
+            
+            <form method="post" action="{% url 'subscriptions:subscribe_creator' creator.id %}" style="display: inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn plan-btn">Subscribe</button>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p>No creators available to subscribe to.</p>
+    {% endif %}
+  </div>
+
   <!-- Affiliate Section -->
   <div class="section">
     <h2>Affiliate</h2>
