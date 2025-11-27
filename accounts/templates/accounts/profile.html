@@ -3,6 +3,35 @@
 <head>
   <meta charset="utf-8">
   <title>Profile - {{ user.username }}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+    h1, h2, h3 { color: #333; }
+    table { border-collapse: collapse; margin: 10px 0; width: 100%; }
+    table, th, td { border: 1px solid #ddd; padding: 8px; }
+    th { background-color: #f2f2f2; }
+    .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background: white; }
+    button, a.btn { padding: 10px 15px; margin: 5px 5px 5px 0; border-radius: 3px; text-decoration: none; display: inline-block; border: none; cursor: pointer; }
+    button { background-color: #4CAF50; color: white; }
+    button:hover { background-color: #45a049; }
+    a.btn { background-color: #2196F3; color: white; }
+    a.btn:hover { background-color: #0b7dda; }
+    a.btn-danger { background-color: #f44336; }
+    a.btn-danger:hover { background-color: #da190b; }
+    
+    .plan-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin: 20px 0; }
+    .plan-card { border: 2px solid #ddd; border-radius: 8px; padding: 20px; text-align: center; background: white; transition: all 0.3s ease; }
+    .plan-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: #2196F3; }
+    .plan-card.active { border-color: #4CAF50; background: #f0f8f0; }
+    .plan-card h3 { margin-top: 0; color: #2196F3; }
+    .plan-price { font-size: 28px; font-weight: bold; color: #333; margin: 10px 0; }
+    .plan-period { color: #666; font-size: 14px; }
+    .plan-features { text-align: left; margin: 15px 0; padding: 15px 0; border-top: 1px solid #eee; border-bottom: 1px solid #eee; }
+    .plan-features li { margin: 5px 0; }
+    .plan-btn { width: 100%; margin-top: 15px; }
+    .badge { display: inline-block; padding: 5px 10px; border-radius: 3px; font-size: 12px; margin: 5px 0; }
+    .badge-yearly { background: #4CAF50; color: white; }
+    .badge-monthly { background: #2196F3; color: white; }
+  </style>
 </head>
 <body>
   <h1>Profile</h1>
@@ -11,47 +40,163 @@
   <p><strong>Email:</strong> {{ user.email }}</p>
   <p><strong>Joined:</strong> {{ user.date_joined }}</p>
 
-  <h2>Affiliate</h2>
-  <p><strong>Referral code:</strong> {{ profile.referral_code }}</p>
-  <p>
-    <strong>Affiliate registration link:</strong><br>
-    <a href="{{ affiliate_link }}">{{ affiliate_link }}</a>
-  </p>
-
-  <h3>Referrals</h3>
-  <p>Direct referrals: {{ direct_referral_count }} — Total downline: {{ total_referral_count }}</p>
-
-  {% if downline %}
-    <table border="1" cellpadding="6" cellspacing="0">
-      <thead>
-        <tr>
-          <th>Level</th>
-          <th>Username</th>
-          <th>Email</th>
-          <th>Joined</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in downline %}
+  <!-- Subscriptions Section -->
+  <div class="section">
+    <h2>My Subscriptions</h2>
+    
+    {% if active_subscriptions %}
+      <h3>Active Subscriptions</h3>
+      <table>
+        <thead>
           <tr>
-            <td>{{ item.level }}</td>
-            <td>{{ item.user.username }}</td>
-            <td>{{ item.user.email }}</td>
-            <td>{{ item.user.date_joined }}</td>
+            <th>Plan</th>
+            <th>Billing Period</th>
+            <th>Price</th>
+            <th>Status</th>
+            <th>Period End</th>
+            <th>Action</th>
           </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <p>No referrals yet.</p>
-  {% endif %}
+        </thead>
+        <tbody>
+          {% for sub in active_subscriptions %}
+            <tr>
+              <td>{{ sub.plan.name }}</td>
+              <td><span class="badge {% if sub.plan.billing_period == 'yearly' %}badge-yearly{% else %}badge-monthly{% endif %}">{{ sub.plan.get_billing_period_display }}</span></td>
+              <td>${{ sub.plan.price }}</td>
+              <td><span style="color: green;">{{ sub.get_status_display }}</span></td>
+              <td>{{ sub.current_period_end|date:"Y-m-d"|default:"N/A" }}</td>
+              <td>
+                <a href="{% url 'subscriptions:cancel' sub.id %}" class="btn btn-danger">Cancel</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>You don't have any active subscriptions.</p>
+    {% endif %}
 
-  <h3>Payments</h3>
-  <form method="post" action="{% url 'payments-create' %}">
-    {% csrf_token %}
-    <input type="hidden" name="amount" value="100.00">
-    <button type="submit">Pay $100 (simulate monthly payment)</button>
-  </form>
+    {% if pending_subscriptions %}
+      <h3>Pending Subscriptions</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Plan</th>
+            <th>Billing Period</th>
+            <th>Price</th>
+            <th>Status</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sub in pending_subscriptions %}
+            <tr>
+              <td>{{ sub.plan.name }}</td>
+              <td><span class="badge {% if sub.plan.billing_period == 'yearly' %}badge-yearly{% else %}badge-monthly{% endif %}">{{ sub.plan.get_billing_period_display }}</span></td>
+              <td>${{ sub.plan.price }}</td>
+              <td><span style="color: orange;">{{ sub.get_status_display }}</span></td>
+              <td>{{ sub.created_at|date:"Y-m-d H:i" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+
+    <h3>Available Plans</h3>
+    {% if available_plans %}
+      <div class="plan-container">
+        {% regroup available_plans by plan.get_billing_period_display as plans_by_period %}
+        {% for period_group in plans_by_period %}
+          {% for plan in period_group.list %}
+            <div class="plan-card">
+              <h3>{{ plan.name }}</h3>
+              <div class="plan-price">${{ plan.price }}</div>
+              <div class="plan-period">per {{ plan.get_billing_period_display|lower }}</div>
+              
+              {% if plan.billing_period == 'yearly' %}
+                <span class="badge badge-yearly">Save {{ plan.savings_percent|default:"17" }}%</span>
+              {% endif %}
+              
+              <ul class="plan-features">
+                <li>✓ Full Access</li>
+                <li>✓ Priority Support</li>
+                <li>✓ All Features</li>
+              </ul>
+              
+              <a href="{% url 'subscriptions:checkout' plan.key %}" class="btn plan-btn">Subscribe Now</a>
+            </div>
+          {% endfor %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <p>No subscription plans available at the moment.</p>
+    {% endif %}
+  </div>
+
+  <!-- Affiliate Section -->
+  <div class="section">
+    <h2>Affiliate</h2>
+    <p><strong>Referral code:</strong> {{ profile.referral_code }}</p>
+    <p>
+      <strong>Affiliate registration link:</strong><br>
+      <code>{{ affiliate_link }}</code>
+    </p>
+
+    <h3>Referrals</h3>
+    <p>Direct referrals: <strong>{{ direct_referral_count }}</strong> — Total downline: <strong>{{ total_referral_count }}</strong></p>
+
+    {% if downline %}
+      <table>
+        <thead>
+          <tr>
+            <th>Level</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Joined</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in downline %}
+            <tr>
+              <td>{{ item.level }}</td>
+              <td>{{ item.user.username }}</td>
+              <td>{{ item.user.email }}</td>
+              <td>{{ item.user.date_joined|date:"Y-m-d" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No referrals yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- Commissions Section -->
+  <div class="section">
+    <h2>Affiliate Commissions</h2>
+    {% if pending_commissions %}
+      <h3>Pending Commissions</h3>
+      <p>Total Pending: <strong style="color: #ff9800;">${{ pending_commissions_total }}</strong></p>
+      <a href="{% url 'affiliates:payout-request' %}" class="btn">Request Payout</a>
+    {% else %}
+      <p>No pending commissions.</p>
+    {% endif %}
+
+    {% if approved_commissions %}
+      <h3>Approved Commissions</h3>
+      <p>Total Approved: <strong style="color: #4CAF50;">${{ approved_commissions_total }}</strong></p>
+    {% endif %}
+  </div>
+
+  <!-- Payments Section -->
+  <div class="section">
+    <h2>Test Payment</h2>
+    <form method="post" action="{% url 'payments-create' %}">
+      {% csrf_token %}
+      <input type="hidden" name="amount" value="100.00">
+      <button type="submit">Pay $100 (simulate payment)</button>
+    </form>
+  </div>
 
   <p><a href="{% url 'home' %}">Back to home</a></p>
 </body>

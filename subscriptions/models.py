@@ -5,25 +5,35 @@ from django.utils import timezone
 
 User = settings.AUTH_USER_MODEL
 
+
 class Plan(models.Model):
     """
-    Subscription plan (monthly). price in USD (Decimal) and Stripe price_id if using Stripe.
+    Subscription plan (monthly or yearly). price in USD (Decimal).
     """
+    BILLING_PERIOD_CHOICES = [
+        ("monthly", "Monthly"),
+        ("yearly", "Yearly"),
+    ]
+
     key = models.SlugField(max_length=64, unique=True)
     name = models.CharField(max_length=200)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    billing_period = models.CharField(max_length=20, choices=BILLING_PERIOD_CHOICES, default="monthly")
     stripe_price_id = models.CharField(max_length=200, blank=True, null=True)
     active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("billing_period", "price")
 
     def __str__(self):
-        return f"{self.name} ({self.price})"
+        return f"{self.name} ({self.price}) - {self.get_billing_period_display()}"
 
 
 class Subscription(models.Model):
     """
     A user's subscription to a Plan (recurring).
     status: pending -> active -> past_due -> canceled
-    If you want manual admin approval of funds, set pending_approval=True while awaiting confirmation.
     """
     STATUS_PENDING = "pending"
     STATUS_ACTIVE = "active"
@@ -44,7 +54,7 @@ class Subscription(models.Model):
     current_period_start = models.DateTimeField(null=True, blank=True)
     current_period_end = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    pending_approval = models.BooleanField(default=False)  # set True if admin must approve bank transfer
+    pending_approval = models.BooleanField(default=False)
     metadata = models.JSONField(default=dict, blank=True)
 
     class Meta:
@@ -59,7 +69,7 @@ class Subscription(models.Model):
 
 class CreatorSubscription(models.Model):
     """
-    A subscriber paying a monthly fee to a creator (user). Commission distribution uses same flow.
+    A subscriber paying a monthly fee to a creator (user).
     """
     STATUS_PENDING = "pending"
     STATUS_ACTIVE = "active"
@@ -93,9 +103,13 @@ class CreatorSubscription(models.Model):
 
 
 class PayoutRequest(models.Model):
+    """Request to payout affiliate commissions."""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="payout_requests")
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
     approved = models.BooleanField(default=False)
     paid_at = models.DateTimeField(null=True, blank=True)
     external_reference = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return f"Payout {self.id} - {self.user.username} (${self.amount})"

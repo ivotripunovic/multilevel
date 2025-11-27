@@ -7,6 +7,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.urls import reverse
 from django.utils import timezone
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 
 from payments.gateways.registry import get_gateway
 from .models import Plan, Subscription
@@ -89,3 +91,25 @@ def gateway_webhook(request):
 
     # other event types can be handled similarly
     return HttpResponse(status=200)
+
+
+@login_required
+def cancel_subscription(request, subscription_id):
+    """Cancel a user's subscription."""
+    sub = get_object_or_404(Subscription, id=subscription_id, user=request.user)
+    sub.status = Subscription.STATUS_CANCELED
+    sub.save()
+    messages.success(request, f"Subscription to {sub.plan.name} has been canceled.")
+    return redirect("accounts-profile")
+
+
+def checkout_success(request):
+    """Handle successful checkout redirect."""
+    messages.success(request, "Subscription created successfully! Awaiting payment confirmation.")
+    return redirect("accounts-profile")
+
+
+def checkout_cancel(request):
+    """Handle canceled checkout."""
+    messages.warning(request, "Subscription checkout was canceled.")
+    return redirect("accounts-profile")

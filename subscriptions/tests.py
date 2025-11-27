@@ -29,7 +29,7 @@ class PlanModelTests(TestCase):
         self.assertTrue(self.plan.active)
 
     def test_plan_str(self):
-        self.assertEqual(str(self.plan), "Pro Plan (9.99)")
+        self.assertEqual(str(self.plan), "Pro Plan (9.99) - Monthly")
 
 
 class MonthlySubscriptionTests(TestCase):
