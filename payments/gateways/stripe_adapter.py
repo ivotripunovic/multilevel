@@ -59,7 +59,7 @@ class Gateway(GatewayBase):
         sig_header = request.META.get("HTTP_STRIPE_SIGNATURE", "")
         try:
             event = self._stripe.Webhook.construct_event(payload, sig_header, self._webhook_secret) if self._webhook_secret else self._stripe.Event.construct_from(request.json(), self._stripe.api_key)
-        except Exception as exc:
+        except Exception:
             raise
         etype = event["type"]
         data = event["data"]["object"]

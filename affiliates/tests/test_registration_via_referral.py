@@ -1,4 +1,3 @@
-from decimal import Decimal
 import uuid
 
 from django.test import TestCase, Client

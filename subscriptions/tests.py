@@ -1,7 +1,6 @@
 from decimal import Decimal
-from django.test import TestCase, Client
+from django.test import TestCase
 from django.contrib.auth import get_user_model
-from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
 
@@ -297,12 +296,9 @@ class CreatorSubscriptionWithAffiliatesTests(TestCase):
         commissions should distribute to the subscriber's upline (affiliate).
         """
         # Debug: verify the relationship exists in DB
-        from django.db import connection
-        from django.test.utils import CaptureQueriesContext
         
         # Verify the upline is set up correctly
         from affiliates import utils as aff_utils
-        from affiliates.models import Commission
         
         upline = aff_utils.get_upline_users(self.subscriber)
         self.assertGreater(len(upline), 0, f"Upline not set up. subscriber_profile.referred_by={self.subscriber_profile.referred_by}, upline={upline}")
