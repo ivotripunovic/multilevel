@@ -131,6 +131,30 @@
     {% else %}
       <p>No subscription plans available at the moment.</p>
     {% endif %}
+
+    {% if pending_creator_subscriptions %}
+      <h3>Pending Creator Subscriptions</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Creator</th>
+            <th>Monthly Fee</th>
+            <th>Status</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for csub in pending_creator_subscriptions %}
+            <tr>
+              <td>{{ csub.creator.username }}</td>
+              <td>${{ csub.amount }}</td>
+              <td><span style="color: orange;">{{ csub.get_status_display }}</span></td>
+              <td>{{ csub.created_at|date:"Y-m-d" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
   </div>
 
   <!-- Creator Subscriptions Section -->

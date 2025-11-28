@@ -115,6 +115,11 @@ def profile_view(request):
         status=CreatorSubscription.STATUS_ACTIVE,
         pending_approval=False,
     )
+    pending_creator_subscriptions = CreatorSubscription.objects.filter(
+        subscriber=request.user, 
+        status=CreatorSubscription.STATUS_PENDING,
+        pending_approval=True,
+    )
 
     # Get available creators (users with profiles, excluding current user and already subscribed)
     subscribed_creator_ids = active_creator_subscriptions.values_list("creator_id")
@@ -161,6 +166,7 @@ def profile_view(request):
         "pending_subscriptions": pending_subscriptions,
         "available_plans": available_plans,
         "active_creator_subscriptions": active_creator_subscriptions,
+        "pending_creator_subscriptions": pending_creator_subscriptions,
         "available_creators": available_creators,
         "direct_referral_count": direct_referral_count,
         "total_referral_count": total_referral_count,
