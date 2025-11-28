@@ -6,7 +6,7 @@
 ### Friday 28
 - learned how to fight procrastination, didn't do anything on the project in the
 morning
-- started with saving VIP subscription
+- 3*pomodoros saving VIP subscription
 
 
 ## Week 47 - 2025-11-17
