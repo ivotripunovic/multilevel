@@ -1,7 +1,7 @@
 import os
 from decimal import Decimal
 from django.conf import settings
-from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
+from django.http import HttpRequest, HttpResponse, JsonResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -23,7 +23,19 @@ def create_checkout_session_for_plan(request, plan_key):
     plan = get_object_or_404(Plan, key=plan_key, active=True)
     gateway = get_gateway()
     session = gateway.create_checkout_session(request, plan=plan, metadata={"plan_key": plan.key})
-    return JsonResponse(session)
+    # TODO change when production comes return JsonResponse(session)
+    session["metadata"] = {"plan_key": plan.key, "user_id": str(request.user.id)}
+    session["event"] = "checkout.session.completed"
+    request = HttpRequest()
+    request.METHOD = "POST"
+    request.POST.update(session)
+
+    gateway_webhook(request)
+
+    return redirect("accounts-profile")
+
+
+
 
 
 @csrf_exempt

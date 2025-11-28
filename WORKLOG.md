@@ -3,6 +3,12 @@
 
 ## Week 48 - 2025-11-23
 
+### Friday 28
+- learned how to fight procrastination, didn't do anything on the project in the
+morning
+- started with saving VIP subscription
+
+
 ## Week 47 - 2025-11-17
 
 ### Wednesday, Nov-19
