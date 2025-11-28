@@ -1,12 +1,9 @@
-import os
 from django.shortcuts import render, redirect
-from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth import login, logout
 from django.views.decorators.http import require_http_methods
-from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.urls import reverse
-from django.shortcuts import render
-from django.db.models import Sum, Q
+from django.db.models import Sum
+
 
 from affiliates.models import Profile, Commission
 from affiliates import utils as aff_utils
@@ -18,6 +15,7 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+
 @require_http_methods(["GET", "POST"])
 def register_view(request):
     """
@@ -26,7 +24,11 @@ def register_view(request):
     Preserves referral_code in form.initial on validation errors.
     """
     # determine referral code from GET or POST
-    ref = request.GET.get("ref") or request.POST.get("referral_code") or request.POST.get("ref")
+    ref = (
+        request.GET.get("ref")
+        or request.POST.get("referral_code")
+        or request.POST.get("ref")
+    )
     initial = {}
     if ref:
         initial["referral_code"] = ref
@@ -90,59 +92,69 @@ def logout_view(request):
 def profile_view(request):
     """Display user profile with subscriptions, affiliate info, and commissions."""
     profile = Profile.objects.get(user=request.user)
-    
+
     # Get subscription data
     active_subscriptions = Subscription.objects.filter(
-        user=request.user,
-        status=Subscription.STATUS_ACTIVE,
-        pending_approval=False
+        user=request.user, status=Subscription.STATUS_ACTIVE, pending_approval=False
     )
     pending_subscriptions = Subscription.objects.filter(
-        user=request.user,
-        status=Subscription.STATUS_PENDING
+        user=request.user, status=Subscription.STATUS_PENDING
     )
-    
+
     # Get available plans user is not subscribed to
-    subscribed_plan_ids = Subscription.objects.filter(user=request.user).values_list("plan_id")
-    available_plans = Plan.objects.filter(active=True).exclude(id__in=subscribed_plan_ids)
-    
+    subscribed_plan_ids = Subscription.objects.filter(user=request.user).values_list(
+        "plan_id"
+    )
+    available_plans = Plan.objects.filter(active=True).exclude(
+        id__in=subscribed_plan_ids
+    )
+
     # Get active creator subscriptions
     active_creator_subscriptions = CreatorSubscription.objects.filter(
         subscriber=request.user,
         status=CreatorSubscription.STATUS_ACTIVE,
-        pending_approval=False
+        pending_approval=False,
     )
-    
+
     # Get available creators (users with profiles, excluding current user and already subscribed)
     subscribed_creator_ids = active_creator_subscriptions.values_list("creator_id")
-    available_creators = User.objects.filter(
-        profile__isnull=False
-    ).exclude(
-        id__in=subscribed_creator_ids
-    ).exclude(
-        id=request.user.id
-    ).order_by("-date_joined")[:20]
-    
+    available_creators = (
+        User.objects.filter(profile__isnull=False)
+        .exclude(id__in=subscribed_creator_ids)
+        .exclude(id=request.user.id)
+        .order_by("-date_joined")[:20]
+    )
+
     # Affiliate data
     direct_referral_count = Profile.objects.filter(referred_by=request.user).count()
     all_downline = aff_utils.get_downline_users(request.user, max_levels=10)
     total_referral_count = len(all_downline)
-    
+
     # Commission data
-    pending_commissions = Commission.objects.filter(recipient=request.user, approved=False)
-    pending_commissions_total = pending_commissions.aggregate(total=Sum("amount"))["total"] or 0
-    
-    approved_commissions = Commission.objects.filter(recipient=request.user, approved=True)
-    approved_commissions_total = approved_commissions.aggregate(total=Sum("amount"))["total"] or 0
-    
+    pending_commissions = Commission.objects.filter(
+        recipient=request.user, approved=False
+    )
+    pending_commissions_total = (
+        pending_commissions.aggregate(total=Sum("amount"))["total"] or 0
+    )
+
+    approved_commissions = Commission.objects.filter(
+        recipient=request.user, approved=True
+    )
+    approved_commissions_total = (
+        approved_commissions.aggregate(total=Sum("amount"))["total"] or 0
+    )
+
     # Build downline with levels
     downline = []
     for user, level in all_downline[:50]:
         downline.append({"user": user, "level": level})
-    
+
     # Build affiliate link
-    affiliate_link = request.build_absolute_uri(f"/accounts/register/?ref={profile.referral_code}")
-    
+    affiliate_link = request.build_absolute_uri(
+        f"/accounts/register/?ref={profile.referral_code}"
+    )
+
     context = {
         "profile": profile,
         "active_subscriptions": active_subscriptions,

@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.0/topics/settings/
 """
 
 import os
+import sys
 from pathlib import Path
 from decouple import config
 
@@ -22,17 +23,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config("SECRET_KEY", default='')
+SECRET_KEY = config("SECRET_KEY", default="")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", default=True)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(',')
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="").split(",")
 
-if 'CODESPACE_NAME' in os.environ:
+if "CODESPACE_NAME" in os.environ:
     codespace_name = config("CODESPACE_NAME")
     codespace_domain = config("GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN")
-    CSRF_TRUSTED_ORIGINS = [f'https://{codespace_name}-8000.{codespace_domain}']
+    CSRF_TRUSTED_ORIGINS = [f"https://{codespace_name}-8000.{codespace_domain}"]
 
 # Application definition
 
@@ -191,10 +192,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # }
 
 # Speeding up tests
-import sys
-if 'test' in sys.argv or 'pytest' in sys.argv[0]: # Adjust condition as needed
+if "test" in sys.argv or "pytest" in sys.argv[0]:  # Adjust condition as needed
     PASSWORD_HASHERS = [
-        'django.contrib.auth.hashers.MD5PasswordHasher',
+        "django.contrib.auth.hashers.MD5PasswordHasher",
     ]
 
 # Payment Gateway Configuration
