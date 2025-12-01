@@ -1,8 +1,7 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect
 from django.contrib.auth import login
 from .forms import RegistrationForm
 from .models import Profile
-from .utils import distribute_commissions
 
 def register_view(request):
     if request.method == "POST":
