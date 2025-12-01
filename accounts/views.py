@@ -3,6 +3,7 @@ from django.contrib.auth import login, logout
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
+from django.urls import reverse, NoReverseMatch
 
 
 from affiliates.models import Profile, Commission
@@ -160,6 +161,12 @@ def profile_view(request):
         f"/accounts/register/?ref={profile.referral_code}"
     )
 
+    payout_request_url = None
+    try:
+        payout_request_url = reverse("affiliates:payout-request")
+    except NoReverseMatch:
+        payout_request_url = None
+
     context = {
         "profile": profile,
         "active_subscriptions": active_subscriptions,
@@ -172,6 +179,7 @@ def profile_view(request):
         "total_referral_count": total_referral_count,
         "downline": downline,
         "affiliate_link": affiliate_link,
+        "payout_request_url": payout_request_url,
         "pending_commissions": pending_commissions,
         "pending_commissions_total": pending_commissions_total,
         "approved_commissions": approved_commissions,

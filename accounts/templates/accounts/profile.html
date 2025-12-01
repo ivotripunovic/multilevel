@@ -264,7 +264,11 @@
     {% if pending_commissions %}
       <h3>Pending Commissions</h3>
       <p>Total Pending: <strong style="color: #ff9800;">${{ pending_commissions_total }}</strong></p>
-      <a href="{% url 'affiliates:payout-request' %}" class="btn">Request Payout</a>
+      {% if payout_request_url %}
+        <a href="{{ payout_request_url }}" class="btn">Request Payout</a>
+      {% else %}
+        <p class="muted">Contact support to request a payout.</p>
+      {% endif %}
     {% else %}
       <p>No pending commissions.</p>
     {% endif %}
