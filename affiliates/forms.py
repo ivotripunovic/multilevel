@@ -3,9 +3,14 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+
 class RegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput)
-    referral_code = forms.CharField(max_length=64, required=False)
+    referral_code = forms.CharField(
+        max_length=150,
+        required=False,
+        help_text="Optional referrer's username",
+    )
 
     class Meta:
         model = User

@@ -1,5 +1,4 @@
 from decimal import Decimal
-import uuid
 
 from django.test import TestCase
 from django.contrib.auth import get_user_model
@@ -15,10 +14,18 @@ class UplineTests(TestCase):
 
     def setUp(self):
         """Create a 4-level referral chain: A <- B <- C <- D"""
-        self.user_a = User.objects.create_user(username="user_a", email="a@example.com", password="pass")
-        self.user_b = User.objects.create_user(username="user_b", email="b@example.com", password="pass")
-        self.user_c = User.objects.create_user(username="user_c", email="c@example.com", password="pass")
-        self.user_d = User.objects.create_user(username="user_d", email="d@example.com", password="pass")
+        self.user_a = User.objects.create_user(
+            username="user_a", email="a@example.com", password="pass"
+        )
+        self.user_b = User.objects.create_user(
+            username="user_b", email="b@example.com", password="pass"
+        )
+        self.user_c = User.objects.create_user(
+            username="user_c", email="c@example.com", password="pass"
+        )
+        self.user_d = User.objects.create_user(
+            username="user_d", email="d@example.com", password="pass"
+        )
 
         # Ensure profiles exist
         for u in (self.user_a, self.user_b, self.user_c, self.user_d):
@@ -37,7 +44,7 @@ class UplineTests(TestCase):
     def test_get_upline_users_returns_correct_order(self):
         """get_upline_users should return upline in order (direct parent first) with correct levels."""
         upline = aff_utils.get_upline_users(self.user_d, max_levels=10)
-        
+
         self.assertEqual(len(upline), 3)
         # Level 1: direct parent (user_c)
         self.assertEqual(upline[0][0], self.user_c)
@@ -52,7 +59,7 @@ class UplineTests(TestCase):
     def test_get_upline_users_respects_max_levels(self):
         """get_upline_users should stop at max_levels."""
         upline = aff_utils.get_upline_users(self.user_d, max_levels=2)
-        
+
         self.assertEqual(len(upline), 2)
         self.assertEqual(upline[0][0], self.user_c)
         self.assertEqual(upline[1][0], self.user_b)
@@ -60,13 +67,13 @@ class UplineTests(TestCase):
     def test_get_upline_users_with_no_referrer(self):
         """get_upline_users should return empty list for root user."""
         upline = aff_utils.get_upline_users(self.user_a)
-        
+
         self.assertEqual(len(upline), 0)
 
     def test_get_upline_users_one_level_deep(self):
         """get_upline_users should return only direct parent for one level."""
         upline = aff_utils.get_upline_users(self.user_b)
-        
+
         self.assertEqual(len(upline), 1)
         self.assertEqual(upline[0][0], self.user_a)
         self.assertEqual(upline[0][1], 1)
@@ -77,10 +84,18 @@ class CommissionDistributionTests(TestCase):
 
     def setUp(self):
         """Create a 4-level referral chain."""
-        self.user_a = User.objects.create_user(username="user_a", email="a@example.com", password="pass")
-        self.user_b = User.objects.create_user(username="user_b", email="b@example.com", password="pass")
-        self.user_c = User.objects.create_user(username="user_c", email="c@example.com", password="pass")
-        self.user_d = User.objects.create_user(username="user_d", email="d@example.com", password="pass")
+        self.user_a = User.objects.create_user(
+            username="user_a", email="a@example.com", password="pass"
+        )
+        self.user_b = User.objects.create_user(
+            username="user_b", email="b@example.com", password="pass"
+        )
+        self.user_c = User.objects.create_user(
+            username="user_c", email="c@example.com", password="pass"
+        )
+        self.user_d = User.objects.create_user(
+            username="user_d", email="d@example.com", password="pass"
+        )
 
         # Ensure profiles exist
         for u in (self.user_a, self.user_b, self.user_c, self.user_d):
@@ -103,10 +118,14 @@ class CommissionDistributionTests(TestCase):
 
         aff_utils.distribute_commissions(self.user_d, sale_amount)
 
-        commissions = Commission.objects.filter(source_user=self.user_d).order_by("level")
-        expected_upline = aff_utils.get_upline_users(self.user_d, max_levels=len(aff_utils.LEVEL_RATES))
+        commissions = Commission.objects.filter(source_user=self.user_d).order_by(
+            "level"
+        )
+        expected_upline = aff_utils.get_upline_users(
+            self.user_d, max_levels=len(aff_utils.LEVEL_RATES)
+        )
         expected_count = min(len(expected_upline), len(aff_utils.LEVEL_RATES))
-        
+
         self.assertEqual(commissions.count(), expected_count)
 
     def test_distribute_commissions_correct_amounts(self):
@@ -116,7 +135,9 @@ class CommissionDistributionTests(TestCase):
 
         aff_utils.distribute_commissions(self.user_d, sale_amount)
 
-        commissions = Commission.objects.filter(source_user=self.user_d).order_by("level")
+        commissions = Commission.objects.filter(source_user=self.user_d).order_by(
+            "level"
+        )
 
         for commission in commissions:
             level_idx = commission.level - 1
@@ -131,8 +152,12 @@ class CommissionDistributionTests(TestCase):
 
         aff_utils.distribute_commissions(self.user_d, sale_amount)
 
-        commissions = Commission.objects.filter(source_user=self.user_d).order_by("level")
-        expected_upline = aff_utils.get_upline_users(self.user_d, max_levels=len(aff_utils.LEVEL_RATES))
+        commissions = Commission.objects.filter(source_user=self.user_d).order_by(
+            "level"
+        )
+        expected_upline = aff_utils.get_upline_users(
+            self.user_d, max_levels=len(aff_utils.LEVEL_RATES)
+        )
 
         for commission in commissions:
             level_idx = commission.level - 1
@@ -191,7 +216,9 @@ class CommissionDistributionTests(TestCase):
     def test_distribute_commissions_partial_upline(self):
         """Commission distribution should work even with partial upline (fewer than max levels)."""
         # Create a standalone user with no referrer
-        isolated_user = User.objects.create_user(username="isolated", email="iso@example.com", password="pass")
+        isolated_user = User.objects.create_user(
+            username="isolated", email="iso@example.com", password="pass"
+        )
         Profile.objects.get_or_create(user=isolated_user)
 
         sale_amount = Decimal("100.00")

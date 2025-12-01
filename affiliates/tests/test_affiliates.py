@@ -1,5 +1,4 @@
 from decimal import Decimal
-import uuid
 
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
@@ -13,10 +12,18 @@ User = get_user_model()
 class AffiliateTests(TestCase):
     def setUp(self):
         # Create a chain: A <- B <- C <- D  (A is top upline, D is newest user)
-        self.user_a = User.objects.create_user(username="user_a", email="a@example.com", password="pass")
-        self.user_b = User.objects.create_user(username="user_b", email="b@example.com", password="pass")
-        self.user_c = User.objects.create_user(username="user_c", email="c@example.com", password="pass")
-        self.user_d = User.objects.create_user(username="user_d", email="d@example.com", password="pass")
+        self.user_a = User.objects.create_user(
+            username="user_a", email="a@example.com", password="pass"
+        )
+        self.user_b = User.objects.create_user(
+            username="user_b", email="b@example.com", password="pass"
+        )
+        self.user_c = User.objects.create_user(
+            username="user_c", email="c@example.com", password="pass"
+        )
+        self.user_d = User.objects.create_user(
+            username="user_d", email="d@example.com", password="pass"
+        )
 
         # Ensure profiles exist (in case you don't have a post_save signal)
         for u in (self.user_a, self.user_b, self.user_c, self.user_d):
@@ -59,9 +66,13 @@ class AffiliateTests(TestCase):
         aff_utils.distribute_commissions(self.user_d, sale_amount)
 
         # Fetch commissions issued for this source
-        commissions = Commission.objects.filter(source_user=self.user_d).order_by("level")
+        commissions = Commission.objects.filter(source_user=self.user_d).order_by(
+            "level"
+        )
         # We expect one commission per configured rate (or per available upline)
-        expected_upline = aff_utils.get_upline_users(self.user_d, max_levels=len(aff_utils.LEVEL_RATES))
+        expected_upline = aff_utils.get_upline_users(
+            self.user_d, max_levels=len(aff_utils.LEVEL_RATES)
+        )
         expected_count = min(len(expected_upline), len(aff_utils.LEVEL_RATES))
         self.assertEqual(commissions.count(), expected_count)
 
@@ -80,29 +91,40 @@ class AffiliateTests(TestCase):
         form should have the referral_code pre-filled in form.initial or field value.
         """
         client = Client()
-        referrer = User.objects.create_user(username="ref_get", email="refget@example.com", password="pass")
+        referrer = User.objects.create_user(
+            username="ref_get", email="refget@example.com", password="pass"
+        )
         ref_profile, _ = Profile.objects.get_or_create(user=referrer)
-        if not ref_profile.referral_code:
-            ref_profile.referral_code = str(uuid.uuid4())[:32]
-            ref_profile.save()
+        ref_profile.refresh_from_db()
         referral_code = ref_profile.referral_code
 
         resp = client.get(f"/affiliates/?ref={referral_code}")
-        self.assertEqual(resp.status_code, 200, "GET /affiliates/ did not return 200. Ensure the view handles GET and uses the 'ref' query param.")
+        self.assertEqual(
+            resp.status_code,
+            200,
+            "GET /affiliates/ did not return 200. Ensure the view handles GET and uses the 'ref' query param.",
+        )
 
         # Check form in context and initial value
         form = resp.context.get("form") if resp.context else None
-        self.assertIsNotNone(form, "Response context has no 'form'. Ensure the affiliates view passes 'form' to the template.")
+        self.assertIsNotNone(
+            form,
+            "Response context has no 'form'. Ensure the affiliates view passes 'form' to the template.",
+        )
         # prefer initial, fall back to bound field value if present
-        initial_code = form.initial.get("referral_code") if hasattr(form, "initial") else None
+        initial_code = (
+            form.initial.get("referral_code") if hasattr(form, "initial") else None
+        )
         field_value = None
         try:
             field_value = form["referral_code"].value()
         except Exception:
             field_value = None
 
-        self.assertTrue(initial_code == referral_code or field_value == referral_code,
-                        "Referral code was not prefilled in the registration form (checked form.initial and form field value).")
+        self.assertTrue(
+            initial_code == referral_code or field_value == referral_code,
+            "Referral code was not prefilled in the registration form (checked form.initial and form field value).",
+        )
 
     def test_affiliates_get_returns_200_without_ref(self):
         """
@@ -110,9 +132,13 @@ class AffiliateTests(TestCase):
         """
         client = Client()
         resp = client.get("/affiliates/")
-        self.assertEqual(resp.status_code, 200, "GET /affiliates/ without ref did not return 200.")
+        self.assertEqual(
+            resp.status_code, 200, "GET /affiliates/ without ref did not return 200."
+        )
         form = resp.context.get("form") if resp.context else None
-        self.assertIsNotNone(form, "Response context has no 'form' for GET /affiliates/.")
+        self.assertIsNotNone(
+            form, "Response context has no 'form' for GET /affiliates/."
+        )
 
     def test_affiliates_via_referral_link_attaches_referred_by(self):
         """
@@ -122,29 +148,37 @@ class AffiliateTests(TestCase):
         client = Client()
 
         # Create a referrer with a referral_code
-        referrer = User.objects.create_user(username="referrer", email="ref@example.com", password="pass")
+        referrer = User.objects.create_user(
+            username="referrer", email="ref@example.com", password="pass"
+        )
         # Ensure referrer's profile has a referral_code
         ref_profile, _ = Profile.objects.get_or_create(user=referrer)
-        # Make sure there's a referral_code (some implementations default-create one)
-        if not ref_profile.referral_code:
-            ref_profile.referral_code = str(uuid.uuid4())[:32]
-            ref_profile.save()
-
+        ref_profile.refresh_from_db()
         referral_code = ref_profile.referral_code
 
         # Post registration form; adjust form fields if your registration form differs
-        resp = client.post(f"/affiliates/?ref={referral_code}", data={
-            "username": "new_referred",
-            "email": "new@referred.example",
-            "password": "newpass123",
-        })
+        resp = client.post(
+            f"/affiliates/?ref={referral_code}",
+            data={
+                "username": "new_referred",
+                "email": "new@referred.example",
+                "password": "newpass123",
+            },
+        )
 
         # Accept either successful redirect or successful render; ensure user created
-        self.assertIn(resp.status_code, (200, 302), f"Unexpected status code {resp.status_code} from POST /affiliates/. Response body: {getattr(resp, 'content', b'')[:200]!r}")
+        self.assertIn(
+            resp.status_code,
+            (200, 302),
+            f"Unexpected status code {resp.status_code} from POST /affiliates/. Response body: {getattr(resp, 'content', b'')[:200]!r}",
+        )
 
         # New user should exist and have profile.referred_by set to referrer
         new_user = User.objects.filter(username="new_referred").first()
-        self.assertIsNotNone(new_user, f"Registration did not create the new user. Response status: {resp.status_code}. Response body: {getattr(resp, 'content', b'')[:400]!r}")
+        self.assertIsNotNone(
+            new_user,
+            f"Registration did not create the new user. Response status: {resp.status_code}. Response body: {getattr(resp, 'content', b'')[:400]!r}",
+        )
         # Ensure profile exists
         new_profile = Profile.objects.get(user=new_user)
         self.assertEqual(new_profile.referred_by, referrer)

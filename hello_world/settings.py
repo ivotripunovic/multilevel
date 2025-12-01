@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.0/topics/settings/
 """
 
 import os
+import sys
 from pathlib import Path
 from decouple import config
 
@@ -22,17 +23,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config("SECRET_KEY", default='')
+SECRET_KEY = config("SECRET_KEY", default="")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", default=True)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(',')
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="").split(",")
 
-if 'CODESPACE_NAME' in os.environ:
+if "CODESPACE_NAME" in os.environ:
     codespace_name = config("CODESPACE_NAME")
     codespace_domain = config("GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN")
-    CSRF_TRUSTED_ORIGINS = [f'https://{codespace_name}-8000.{codespace_domain}']
+    CSRF_TRUSTED_ORIGINS = [f"https://{codespace_name}-8000.{codespace_domain}"]
 
 # Application definition
 
@@ -46,7 +47,8 @@ INSTALLED_APPS = [
     "django_browser_reload",
     "affiliates.apps.AffiliatesConfig",
     "payments.apps.PaymentsConfig",
-    "accounts.apps.AccountsConfig",  # <-- add this
+    "accounts.apps.AccountsConfig",
+    "subscriptions.apps.SubscriptionsConfig",
 ]
 
 MIDDLEWARE = [
@@ -144,9 +146,60 @@ MEDIA_ROOT = BASE_DIR / "hello_world" / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+
+# LOGGING = {
+#     "version": 1,
+#     "disable_existing_loggers": False,
+#     "formatters": {
+#         "verbose": {
+#             "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+#             "style": "{",
+#         },
+#         "simple": {
+#             "format": "{levelname} {message}",
+#             "style": "{",
+#         },
+#     },
+#     "handlers": {
+#         "console": {
+#             "level": "DEBUG",  # Set handler level to DEBUG
+#             "class": "logging.StreamHandler",
+#             "formatter": "simple",
+#         },
+#         "file": {
+#             "level": "DEBUG",  # Set handler level to DEBUG
+#             "class": "logging.FileHandler",
+#             "filename": "debug.log",  # Specify your log file path
+#             "formatter": "verbose",
+#         },
+#     },
+#     "loggers": {
+#         "django": {
+#             "handlers": ["console", "file"],  # Use both console and file handlers
+#             "level": "DEBUG",  # Set Django logger level to DEBUG
+#             "propagate": False,
+#         },
+#         "affiliates": {  # Replace 'your_app_name' with your actual app name
+#             "handlers": ["console", "file"],
+#             "level": "DEBUG",
+#             "propagate": False,
+#         },
+#         "": {  # Root logger, captures messages from all other loggers
+#             "handlers": ["console"],
+#             "level": "INFO",  # You might want a higher level for the root logger
+#         },
+#     },
+# }
+
 # Speeding up tests
-import sys
-if 'test' in sys.argv or 'pytest' in sys.argv[0]: # Adjust condition as needed
+if "test" in sys.argv or "pytest" in sys.argv[0]:  # Adjust condition as needed
     PASSWORD_HASHERS = [
-        'django.contrib.auth.hashers.MD5PasswordHasher',
+        "django.contrib.auth.hashers.MD5PasswordHasher",
     ]
+
+# Payment Gateway Configuration
+PAYMENT_GATEWAY = config("PAYMENT_GATEWAY", default="dummy")
+PAYMENT_GATEWAY_CONFIG = {
+    "api_key": config("PAYMENT_GATEWAY_API_KEY", default=""),
+    "webhook_secret": config("PAYMENT_GATEWAY_WEBHOOK_SECRET", default=""),
+}

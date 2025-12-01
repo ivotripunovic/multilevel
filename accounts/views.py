@@ -1,16 +1,21 @@
-import os
 from django.shortcuts import render, redirect
-from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth import login, logout
 from django.views.decorators.http import require_http_methods
-from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.urls import reverse
-from django.shortcuts import render
+from django.db.models import Sum
+from django.urls import reverse, NoReverseMatch
 
-from affiliates.models import Profile
+
+from affiliates.models import Profile, Commission
 from affiliates import utils as aff_utils
+from subscriptions.models import Plan, Subscription
+from subscriptions.models import CreatorSubscription
 
 from .forms import RegisterForm, LoginForm
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
 
 @require_http_methods(["GET", "POST"])
 def register_view(request):
@@ -20,7 +25,11 @@ def register_view(request):
     Preserves referral_code in form.initial on validation errors.
     """
     # determine referral code from GET or POST
-    ref = request.GET.get("ref") or request.POST.get("referral_code") or request.POST.get("ref")
+    ref = (
+        request.GET.get("ref")
+        or request.POST.get("referral_code")
+        or request.POST.get("ref")
+    )
     initial = {}
     if ref:
         initial["referral_code"] = ref
@@ -82,42 +91,98 @@ def logout_view(request):
 
 @login_required
 def profile_view(request):
-    """
-    Show the current user's profile info, an affiliate registration link,
-    and the user's downline (all referred users) up to 3 levels deep.
-    """
-    user = request.user
-    profile, _ = Profile.objects.get_or_create(user=user)
-    # ensure there's a referral_code
-    if not profile.referral_code:
-        import uuid
-        profile.referral_code = str(uuid.uuid4())[:32]
-        profile.save()
+    """Display user profile with subscriptions, affiliate info, and commissions."""
+    profile = Profile.objects.get(user=request.user)
 
-    # Build absolute affiliate registration link
-    register_path = reverse("accounts-register")
-    
-    # Check if running in GitHub Codespace
-    if 'CODESPACE_NAME' in os.environ:
-        codespace_name = os.environ.get('CODESPACE_NAME')
-        forwarding_domain = os.environ.get('GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN', 'preview.app.github.dev')
-        base_url = f"https://{codespace_name}-8000.{forwarding_domain}"
-        affiliate_link = f"{base_url}{register_path}?ref={profile.referral_code}"
-    else:
-        # Fallback to request.build_absolute_uri for local dev
-        affiliate_link = request.build_absolute_uri(f"{register_path}?ref={profile.referral_code}")
+    # Get subscription data
+    active_subscriptions = Subscription.objects.filter(
+        user=request.user, status=Subscription.STATUS_ACTIVE, pending_approval=False
+    )
+    pending_subscriptions = Subscription.objects.filter(
+        user=request.user, status=Subscription.STATUS_PENDING
+    )
 
-    # get downline limited to 3 levels
-    raw_downline = aff_utils.get_downline_users(user, max_levels=3)
+    # Get available plans user is not subscribed to
+    subscribed_plan_ids = Subscription.objects.filter(user=request.user).values_list(
+        "plan_id"
+    )
+    available_plans = Plan.objects.filter(active=True).exclude(
+        id__in=subscribed_plan_ids
+    )
 
-    downline = [{"user": u, "level": lvl} for (u, lvl) in raw_downline]
+    # Get active creator subscriptions
+    active_creator_subscriptions = CreatorSubscription.objects.filter(
+        subscriber=request.user,
+        status=CreatorSubscription.STATUS_ACTIVE,
+        pending_approval=False,
+    )
+    pending_creator_subscriptions = CreatorSubscription.objects.filter(
+        subscriber=request.user,
+        status=CreatorSubscription.STATUS_PENDING,
+        pending_approval=True,
+    )
+
+    # Get available creators (users with profiles, excluding current user and already subscribed)
+    subscribed_creator_ids = active_creator_subscriptions.values_list("creator_id")
+    available_creators = (
+        User.objects.filter(profile__isnull=False)
+        .exclude(id__in=subscribed_creator_ids)
+        .exclude(id=request.user.id)
+        .order_by("-date_joined")[:20]
+    )
+
+    # Affiliate data
+    direct_referral_count = Profile.objects.filter(referred_by=request.user).count()
+    all_downline = aff_utils.get_downline_users(request.user, max_levels=10)
+    total_referral_count = len(all_downline)
+
+    # Commission data
+    pending_commissions = Commission.objects.filter(
+        recipient=request.user, approved=False
+    )
+    pending_commissions_total = (
+        pending_commissions.aggregate(total=Sum("amount"))["total"] or 0
+    )
+
+    approved_commissions = Commission.objects.filter(
+        recipient=request.user, approved=True
+    )
+    approved_commissions_total = (
+        approved_commissions.aggregate(total=Sum("amount"))["total"] or 0
+    )
+
+    # Build downline with levels
+    downline = []
+    for user, level in all_downline[:50]:
+        downline.append({"user": user, "level": level})
+
+    # Build affiliate link
+    affiliate_link = request.build_absolute_uri(
+        f"/accounts/register/?ref={profile.referral_code}"
+    )
+
+    payout_request_url = None
+    try:
+        payout_request_url = reverse("affiliates:payout-request")
+    except NoReverseMatch:
+        payout_request_url = None
 
     context = {
-        "user": user,
         "profile": profile,
-        "affiliate_link": affiliate_link,
+        "active_subscriptions": active_subscriptions,
+        "pending_subscriptions": pending_subscriptions,
+        "available_plans": available_plans,
+        "active_creator_subscriptions": active_creator_subscriptions,
+        "pending_creator_subscriptions": pending_creator_subscriptions,
+        "available_creators": available_creators,
+        "direct_referral_count": direct_referral_count,
+        "total_referral_count": total_referral_count,
         "downline": downline,
-        "direct_referral_count": Profile.objects.filter(referred_by=user).count(),
-        "total_referral_count": len(downline),
+        "affiliate_link": affiliate_link,
+        "payout_request_url": payout_request_url,
+        "pending_commissions": pending_commissions,
+        "pending_commissions_total": pending_commissions_total,
+        "approved_commissions": approved_commissions,
+        "approved_commissions_total": approved_commissions_total,
     }
     return render(request, "accounts/profile.html", context)

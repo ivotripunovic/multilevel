@@ -3,7 +3,12 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 
 from payments.models import Company, Payment, Transaction, CompanyRevenue
-from payments.utils import record_payment, complete_payment, refund_payment, compute_company_revenue
+from payments.utils import (
+    record_payment,
+    complete_payment,
+    refund_payment,
+    compute_company_revenue,
+)
 
 User = get_user_model()
 
@@ -14,13 +19,17 @@ class PaymentsTests(TestCase):
         self.company = Company.objects.create(name="TestCo", owner=self.user)
 
     def test_record_and_complete_payment_creates_transaction_and_updates_revenue(self):
-        p = record_payment(company=self.company, amount="120.00", payer=None, fee="2.50")
+        p = record_payment(
+            company=self.company, amount="120.00", payer=None, fee="2.50"
+        )
         self.assertEqual(p.status, Payment.STATUS_PENDING)
         complete_payment(p)
         p.refresh_from_db()
         self.assertEqual(p.status, Payment.STATUS_COMPLETED)
 
-        tx = Transaction.objects.filter(payment=p, tx_type=Transaction.TYPE_CHARGE).first()
+        tx = Transaction.objects.filter(
+            payment=p, tx_type=Transaction.TYPE_CHARGE
+        ).first()
         self.assertIsNotNone(tx)
         # net amount should be amount - fee
         self.assertEqual(tx.net_amount, Decimal("117.50"))
@@ -35,7 +44,9 @@ class PaymentsTests(TestCase):
         p.refresh_from_db()
         self.assertEqual(p.status, Payment.STATUS_REFUNDED)
 
-        refund_tx = Transaction.objects.filter(payment=p, tx_type=Transaction.TYPE_REFUND).first()
+        refund_tx = Transaction.objects.filter(
+            payment=p, tx_type=Transaction.TYPE_REFUND
+        ).first()
         self.assertIsNotNone(refund_tx)
 
         rev = CompanyRevenue.objects.get(company=self.company)
@@ -50,5 +61,11 @@ class PaymentsTests(TestCase):
 
         # Now compute revenue from transactions
         rev = compute_company_revenue(self.company)
-        expected = (Decimal("100.00") - Decimal("1.00")) + (Decimal("30.00") - Decimal("0.50"))
+        expected = (Decimal("100.00") - Decimal("1.00")) + (
+            Decimal("30.00") - Decimal("0.50")
+        )
         self.assertEqual(rev.total_revenue, expected)
+
+    def test_record_payment_without_company_uses_existing_company(self):
+        p = record_payment(company=None, amount="20.00")
+        self.assertEqual(p.company, self.company)

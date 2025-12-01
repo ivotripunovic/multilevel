@@ -16,14 +16,15 @@
             "program": "${workspaceFolder}/manage.py"
         },
         {
-            "name": "Python Debugger: Django",
+            "name": "Python Debugger: Django (auto start browser)",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/manage.py",
             "args": [
                 "runserver"
             ],
-            "django": true
+            "django": true,
+            "autoStartBrowser": true
         }
     ]
 }
