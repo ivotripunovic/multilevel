@@ -1,8 +1,10 @@
 from decimal import Decimal
-from django.test import TestCase
+from datetime import timedelta
+from unittest.mock import patch
+
+from django.test import TestCase, RequestFactory
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from datetime import timedelta
 
 from subscriptions.models import Plan, Subscription, CreatorSubscription
 from affiliates.models import Profile, Commission
@@ -419,4 +421,134 @@ class SubscriptionContentGatingTests(TestCase):
                 status=CreatorSubscription.STATUS_ACTIVE,
                 pending_approval=False,
             ).exists()
+        )
+
+
+class SubscriptionAdminActionTests(TestCase):
+    """Tests for SubscriptionAdmin approve_payment action."""
+
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.user = User.objects.create_user(
+            username="admin_subscriber",
+            email="admin_subscriber@example.com",
+            password="pass123",
+        )
+        self.plan = Plan.objects.create(
+            key="admin_plan",
+            name="Admin Plan",
+            price=Decimal("25.00"),
+            active=True,
+        )
+        self.subscription = Subscription.objects.create(
+            user=self.user,
+            plan=self.plan,
+            status=Subscription.STATUS_PENDING,
+            pending_approval=True,
+        )
+
+    @patch("subscriptions.admin.aff_utils.distribute_commissions")
+    @patch("subscriptions.admin.complete_payment")
+    @patch("subscriptions.admin.record_payment")
+    def test_approve_payment_action_marks_subscription_active_and_calls_helpers(
+        self,
+        mock_record_payment,
+        mock_complete_payment,
+        mock_distribute_commissions,
+    ):
+        from django.contrib import admin as django_admin
+        from subscriptions.admin import SubscriptionAdmin
+
+        mock_payment = object()
+        mock_record_payment.return_value = mock_payment
+
+        queryset = Subscription.objects.filter(pk=self.subscription.pk)
+        request = self.factory.get("/admin/")
+
+        admin_instance = SubscriptionAdmin(Subscription, django_admin.site)
+        admin_instance.approve_payment(request, queryset)
+
+        mock_record_payment.assert_called_once_with(
+            company=None,
+            amount=self.plan.price,
+            payer=self.user,
+            fee=0,
+        )
+        mock_complete_payment.assert_called_once_with(mock_payment)
+        mock_distribute_commissions.assert_called_once_with(
+            self.user,
+            self.plan.price,
+        )
+
+        self.subscription.refresh_from_db()
+        self.assertFalse(self.subscription.pending_approval)
+        self.assertEqual(self.subscription.status, Subscription.STATUS_ACTIVE)
+
+
+class CreatorSubscriptionAdminActionTests(TestCase):
+    """Tests for CreatorSubscriptionAdmin approve_payment action."""
+
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.creator = User.objects.create_user(
+            username="creator_admin",
+            email="creator_admin@example.com",
+            password="pass123",
+        )
+        self.subscriber = User.objects.create_user(
+            username="subscriber_admin",
+            email="subscriber_admin@example.com",
+            password="pass123",
+        )
+        self.creator_subscription = CreatorSubscription.objects.create(
+            subscriber=self.subscriber,
+            creator=self.creator,
+            amount=Decimal("15.00"),
+            status=CreatorSubscription.STATUS_PENDING,
+            pending_approval=True,
+        )
+
+    @patch("subscriptions.admin.aff_utils.distribute_commissions")
+    @patch("subscriptions.admin.complete_payment")
+    @patch("subscriptions.admin.record_payment")
+    def test_approve_payment_action_marks_creator_subscription_active_and_calls_helpers(
+        self,
+        mock_record_payment,
+        mock_complete_payment,
+        mock_distribute_commissions,
+    ):
+        from django.contrib import admin as django_admin
+        from subscriptions.admin import CreatorSubscriptionAdmin
+
+        mock_payment = object()
+        mock_record_payment.return_value = mock_payment
+
+        queryset = CreatorSubscription.objects.filter(
+            pk=self.creator_subscription.pk
+        )
+        request = self.factory.get("/admin/")
+
+        admin_instance = CreatorSubscriptionAdmin(
+            CreatorSubscription,
+            django_admin.site,
+        )
+        admin_instance.approve_payment(request, queryset)
+
+        mock_record_payment.assert_called_once_with(
+            company=None,
+            amount=self.creator_subscription.amount,
+            payer=self.subscriber,
+            fee=0,
+        )
+        mock_complete_payment.assert_called_once_with(mock_payment)
+        mock_distribute_commissions.assert_called_once_with(
+            self.subscriber,
+            self.creator_subscription.amount,
+        )
+
+        self.creator_subscription.refresh_from_db()
+        self.assertFalse(self.creator_subscription.pending_approval)
+        self.assertEqual(
+            self.creator_subscription.status,
+            CreatorSubscription.STATUS_ACTIVE,
         )

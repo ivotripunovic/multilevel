@@ -44,10 +44,10 @@ class CreatorSubscriptionAdmin(admin.ModelAdmin):
         """
         for sub in queryset:
             p = record_payment(
-                company=None, amount=sub.monthly_fee, payer=sub.subscriber, fee=0
+                company=None, amount=sub.amount, payer=sub.subscriber, fee=0
             )
             complete_payment(p)
-            aff_utils.distribute_commissions(sub.subscriber, sub.monthly_fee)
+            aff_utils.distribute_commissions(sub.subscriber, sub.amount)
 
         queryset.update(
             pending_approval=False, status=CreatorSubscription.STATUS_ACTIVE
