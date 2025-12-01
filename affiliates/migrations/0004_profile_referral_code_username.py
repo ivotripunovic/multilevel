@@ -12,7 +12,6 @@ def sync_referral_codes(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("affiliates", "0003_alter_commission_options_commission_approved_and_more"),
     ]

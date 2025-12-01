@@ -2,6 +2,7 @@ from decimal import Decimal
 from django.http import HttpRequest
 from .base import GatewayBase
 
+
 # lightweight Stripe adapter (lazy imports). Only used if Stripe is installed and selected.
 class Gateway(GatewayBase):
     name = "stripe"
@@ -10,6 +11,7 @@ class Gateway(GatewayBase):
         super().__init__(config=config or {})
         try:
             import stripe  # lazy
+
             self._stripe = stripe
             stripe.api_key = self.config.get("api_key") or ""
             self._webhook_secret = self.config.get("webhook_secret")
@@ -30,25 +32,33 @@ class Gateway(GatewayBase):
                 success_url=domain + "/subscriptions/success/",
                 cancel_url=domain + "/subscriptions/cancel/",
                 metadata=kwargs.get("metadata", {}),
-                client_reference_id=str(getattr(request.user, "id", "")) if request.user.is_authenticated else None,
+                client_reference_id=str(getattr(request.user, "id", ""))
+                if request.user.is_authenticated
+                else None,
             )
         else:
             amt = int(Decimal(kwargs.get("amount", "0")) * 100)
             session = self._stripe.checkout.Session.create(
                 payment_method_types=["card"],
                 mode="payment",
-                line_items=[{
-                    "price_data": {
-                        "currency": kwargs.get("currency", "USD"),
-                        "unit_amount": amt,
-                        "product_data": {"name": kwargs.get("description", "Charge")},
-                    },
-                    "quantity": 1,
-                }],
+                line_items=[
+                    {
+                        "price_data": {
+                            "currency": kwargs.get("currency", "USD"),
+                            "unit_amount": amt,
+                            "product_data": {
+                                "name": kwargs.get("description", "Charge")
+                            },
+                        },
+                        "quantity": 1,
+                    }
+                ],
                 success_url=domain + "/subscriptions/success/",
                 cancel_url=domain + "/subscriptions/cancel/",
                 metadata=kwargs.get("metadata", {}),
-                client_reference_id=str(getattr(request.user, "id", "")) if request.user.is_authenticated else None,
+                client_reference_id=str(getattr(request.user, "id", ""))
+                if request.user.is_authenticated
+                else None,
             )
         return {"id": session.id, "url": session.url, "raw": session}
 
@@ -58,7 +68,15 @@ class Gateway(GatewayBase):
         payload = request.body
         sig_header = request.META.get("HTTP_STRIPE_SIGNATURE", "")
         try:
-            event = self._stripe.Webhook.construct_event(payload, sig_header, self._webhook_secret) if self._webhook_secret else self._stripe.Event.construct_from(request.json(), self._stripe.api_key)
+            event = (
+                self._stripe.Webhook.construct_event(
+                    payload, sig_header, self._webhook_secret
+                )
+                if self._webhook_secret
+                else self._stripe.Event.construct_from(
+                    request.json(), self._stripe.api_key
+                )
+            )
         except Exception:
             raise
         etype = event["type"]

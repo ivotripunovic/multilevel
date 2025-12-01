@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+
 class RegisterForm(UserCreationForm):
     email = forms.EmailField(required=True)
     referral_code = forms.CharField(

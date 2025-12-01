@@ -8,7 +8,11 @@ from .models import Commission, Profile
 logger = logging.getLogger(__name__)
 
 # Example level rates; tune per business rules or store in DB/config
-LEVEL_RATES = [Decimal('0.10'), Decimal('0.05'), Decimal('0.02')]  # 10%, 5%, 2% for levels 1..3
+LEVEL_RATES = [
+    Decimal("0.10"),
+    Decimal("0.05"),
+    Decimal("0.02"),
+]  # 10%, 5%, 2% for levels 1..3
 
 
 def get_upline_users(user, max_levels=None) -> List[Tuple[object, int]]:
@@ -33,16 +37,20 @@ def get_upline_users(user, max_levels=None) -> List[Tuple[object, int]]:
         except Profile.DoesNotExist:
             logger.debug("Profile not found for cur_user=%r", cur_user)
             break
-        
+
         if not prof.referred_by:
             logger.debug("No referred_by for user=%r", cur_user)
             break
-        
+
         level += 1
         parent = prof.referred_by
         upline.append((parent, level))
-        logger.debug("Added to upline: %r at level %d", getattr(parent, "username", parent), level)
-        
+        logger.debug(
+            "Added to upline: %r at level %d",
+            getattr(parent, "username", parent),
+            level,
+        )
+
         if max_levels is not None and level >= max_levels:
             break
         cur_user = parent
@@ -64,7 +72,9 @@ def distribute_commissions(source_user, amount):
     else:
         amt = amount
 
-    logger.debug("distribute_commissions called: source_user=%r amount=%r", source_user, amt)
+    logger.debug(
+        "distribute_commissions called: source_user=%r amount=%r", source_user, amt
+    )
 
     if amt <= Decimal("0"):
         logger.debug("Amount <= 0, nothing to distribute")
@@ -72,16 +82,22 @@ def distribute_commissions(source_user, amount):
 
     max_levels = len(LEVEL_RATES)
     upline = get_upline_users(source_user, max_levels=max_levels)
-    logger.debug("Computed upline for %r: %s", source_user, [(getattr(u, "username", str(u)), lvl) for (u, lvl) in upline])
+    logger.debug(
+        "Computed upline for %r: %s",
+        source_user,
+        [(getattr(u, "username", str(u)), lvl) for (u, lvl) in upline],
+    )
 
     created = 0
-    for (recipient, level) in upline:
+    for recipient, level in upline:
         try:
             rate = LEVEL_RATES[level - 1]
         except IndexError:
             logger.debug("No rate for level %d, stopping", level)
             break
-        commission_amount = (amt * rate).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        commission_amount = (amt * rate).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
 
         try:
             # create Commission using the expected model field names

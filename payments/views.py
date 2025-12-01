@@ -39,13 +39,22 @@ def create_payment_view(request):
         if request.user.is_authenticated:
             company = Company.objects.filter(owner=request.user).first()
             if not company:
-                company = Company.objects.create(name=f"{request.user.username}-company", owner=request.user)
+                company = Company.objects.create(
+                    name=f"{request.user.username}-company", owner=request.user
+                )
         else:
             # fallback company for anonymous (single-site demo)
             company, _ = Company.objects.get_or_create(name="Default Company")
 
-    p = record_payment(company=company, amount=Decimal(amount), payer=request.user if request.user.is_authenticated else None, fee=Decimal("0.00"))
+    p = record_payment(
+        company=company,
+        amount=Decimal(amount),
+        payer=request.user if request.user.is_authenticated else None,
+        fee=Decimal("0.00"),
+    )
     complete_payment(p)
 
-    messages.success(request, f"Simulated payment of ${amount} for company {company.name} recorded.")
+    messages.success(
+        request, f"Simulated payment of ${amount} for company {company.name} recorded."
+    )
     return redirect("accounts-profile")

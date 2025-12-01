@@ -10,6 +10,7 @@ class GatewayBase:
       - create_checkout_session(request, **kwargs) -> dict
       - parse_webhook(request: HttpRequest) -> Tuple[str, Dict[str, Any]]
     """
+
     name = "base"
 
     def __init__(self, config: Dict[str, Any] = None):

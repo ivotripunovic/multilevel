@@ -3,6 +3,7 @@ from django.contrib.auth import login
 from .forms import RegistrationForm
 from .models import Profile
 
+
 def register_view(request):
     if request.method == "POST":
         form = RegistrationForm(request.POST)

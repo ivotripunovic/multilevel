@@ -22,7 +22,6 @@ class Command(BaseCommand):
                 "billing_period": "yearly",
                 "active": True,
             },
-    
         ]
 
         for plan_data in plans_data:
@@ -40,4 +39,6 @@ class Command(BaseCommand):
                     self.style.SUCCESS(f"Created plan: {plan.name} (${plan.price})")
                 )
             else:
-                self.stdout.write(self.style.WARNING(f"Plan already exists: {plan.name}"))
+                self.stdout.write(
+                    self.style.WARNING(f"Plan already exists: {plan.name}")
+                )

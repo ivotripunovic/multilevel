@@ -3,7 +3,7 @@ Seed affiliate users and profiles for demo/testing.
 Creates a root demo user and a tree of referred users up to depth 3.
 
 Usage:
-    python manage.py seed_affiliates --count 100 --demo-username demo_user --password password  
+    python manage.py seed_affiliates --count 100 --demo-username demo_user --password password
 """
 
 from django.core.management.base import BaseCommand
@@ -42,10 +42,17 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--count", "-n", type=int, default=100, help="Number of users to create (including demo_user)"
+            "--count",
+            "-n",
+            type=int,
+            default=100,
+            help="Number of users to create (including demo_user)",
         )
         parser.add_argument(
-            "--demo-username", type=str, default="demo_user", help="Username for the root demo user"
+            "--demo-username",
+            type=str,
+            default="demo_user",
+            help="Username for the root demo user",
         )
         parser.add_argument(
             "--password", type=str, default="password", help="Password for seeded users"
@@ -59,13 +66,14 @@ class Command(BaseCommand):
 
         # Create or get demo root user
         demo_user, created = User.objects.get_or_create(
-            username=demo_username,
-            defaults={"email": f"{demo_username}@example.com"}
+            username=demo_username, defaults={"email": f"{demo_username}@example.com"}
         )
         if created:
             demo_user.set_password(pw)
             demo_user.save()
-            self.stdout.write(self.style.SUCCESS(f"Created demo root user: {demo_user.username}"))
+            self.stdout.write(
+                self.style.SUCCESS(f"Created demo root user: {demo_user.username}")
+            )
         else:
             self.stdout.write(f"Using existing demo user: {demo_user.username}")
 
@@ -107,8 +115,14 @@ class Command(BaseCommand):
 
             existing_profiles.append(prof)
 
-            self.stdout.write(f"Created {user.username} referred_by={chosen.user.username}")
+            self.stdout.write(
+                f"Created {user.username} referred_by={chosen.user.username}"
+            )
 
-        self.stdout.write(self.style.SUCCESS(f"Seeding complete: {len(existing_profiles)} profiles created."))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Seeding complete: {len(existing_profiles)} profiles created."
+            )
+        )
         self.stdout.write("Demo root user referral link:")
         self.stdout.write(f"/accounts/register/?ref={demo_profile.referral_code}")

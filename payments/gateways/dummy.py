@@ -10,12 +10,21 @@ class DummyGateway(GatewayBase):
     Simple gateway used for local/dev testing.
     create_checkout_session returns a local success url; parse_webhook accepts JSON or form with 'event' and 'amount'.
     """
+
     name = "dummy"
 
     def create_checkout_session(self, request: HttpRequest, **kwargs):
         session_id = f"dummy-{int(timezone.now().timestamp())}"
-        success_url = request.build_absolute_uri(reverse("subscriptions:checkout_success")) if request.user.is_authenticated else request.build_absolute_uri("/")
-        return {"id": session_id, "url": success_url, "metadata": kwargs.get("metadata", {})}
+        success_url = (
+            request.build_absolute_uri(reverse("subscriptions:checkout_success"))
+            if request.user.is_authenticated
+            else request.build_absolute_uri("/")
+        )
+        return {
+            "id": session_id,
+            "url": success_url,
+            "metadata": kwargs.get("metadata", {}),
+        }
 
     def parse_webhook(self, request: HttpRequest):
         # try JSON first

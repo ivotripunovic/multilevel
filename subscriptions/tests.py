@@ -38,9 +38,7 @@ class MonthlySubscriptionTests(TestCase):
 
     def setUp(self):
         self.user = User.objects.create_user(
-            username="subscriber",
-            email="sub@example.com",
-            password="pass123"
+            username="subscriber", email="sub@example.com", password="pass123"
         )
         self.plan = Plan.objects.create(
             key="monthly_pro",
@@ -120,14 +118,10 @@ class CreatorSubscriptionTests(TestCase):
 
     def setUp(self):
         self.creator = User.objects.create_user(
-            username="creator",
-            email="creator@example.com",
-            password="pass123"
+            username="creator", email="creator@example.com", password="pass123"
         )
         self.subscriber = User.objects.create_user(
-            username="subscriber",
-            email="subscriber@example.com",
-            password="pass123"
+            username="subscriber", email="subscriber@example.com", password="pass123"
         )
 
     def test_creator_subscription_creation(self):
@@ -193,9 +187,7 @@ class SubscriptionWorkflowTests(TestCase):
 
     def setUp(self):
         self.user = User.objects.create_user(
-            username="user_workflow",
-            email="workflow@example.com",
-            password="pass123"
+            username="user_workflow", email="workflow@example.com", password="pass123"
         )
         # Ensure user has a profile for affiliate tracking
         Profile.objects.get_or_create(user=self.user)
@@ -264,33 +256,35 @@ class CreatorSubscriptionWithAffiliatesTests(TestCase):
     def setUp(self):
         # Create referral chain: affiliate -> subscriber -> creator
         self.creator = User.objects.create_user(
-            username="creator_aff",
-            email="creator_aff@example.com",
-            password="pass123"
+            username="creator_aff", email="creator_aff@example.com", password="pass123"
         )
         self.subscriber = User.objects.create_user(
             username="subscriber_aff",
             email="subscriber_aff@example.com",
-            password="pass123"
+            password="pass123",
         )
         self.affiliate = User.objects.create_user(
             username="affiliate_aff",
             email="affiliate_aff@example.com",
-            password="pass123"
+            password="pass123",
         )
 
         # Create profiles
         Profile.objects.get_or_create(user=self.creator)
         Profile.objects.get_or_create(user=self.affiliate)
-        
+
         # Create subscriber profile and explicitly set referred_by
         subscriber_prof, _ = Profile.objects.get_or_create(user=self.subscriber)
         subscriber_prof.referred_by = self.affiliate
         subscriber_prof.save()
-        
+
         # Refresh from DB to ensure relationship is loaded
-        self.subscriber_profile = Profile.objects.select_related("referred_by").get(user=self.subscriber)
-        self.affiliate_profile = Profile.objects.select_related("referred_by").get(user=self.affiliate)
+        self.subscriber_profile = Profile.objects.select_related("referred_by").get(
+            user=self.subscriber
+        )
+        self.affiliate_profile = Profile.objects.select_related("referred_by").get(
+            user=self.affiliate
+        )
 
     def test_creator_subscription_with_affiliate_commissions(self):
         """
@@ -298,13 +292,17 @@ class CreatorSubscriptionWithAffiliatesTests(TestCase):
         commissions should distribute to the subscriber's upline (affiliate).
         """
         # Debug: verify the relationship exists in DB
-        
+
         # Verify the upline is set up correctly
         from affiliates import utils as aff_utils
-        
+
         upline = aff_utils.get_upline_users(self.subscriber)
-        self.assertGreater(len(upline), 0, f"Upline not set up. subscriber_profile.referred_by={self.subscriber_profile.referred_by}, upline={upline}")
-        
+        self.assertGreater(
+            len(upline),
+            0,
+            f"Upline not set up. subscriber_profile.referred_by={self.subscriber_profile.referred_by}, upline={upline}",
+        )
+
         csub = CreatorSubscription.objects.create(
             subscriber=self.subscriber,
             creator=self.creator,
@@ -315,11 +313,15 @@ class CreatorSubscriptionWithAffiliatesTests(TestCase):
 
         # Simulate admin approval and commission distribution
         created = aff_utils.distribute_commissions(self.subscriber, Decimal("10.00"))
-        self.assertGreater(created, 0, "distribute_commissions returned 0 created commissions")
+        self.assertGreater(
+            created, 0, "distribute_commissions returned 0 created commissions"
+        )
 
         # Check that commissions were created
         commissions = Commission.objects.filter(source_user=self.subscriber)
-        self.assertGreater(commissions.count(), 0, "No commissions created for subscriber")
+        self.assertGreater(
+            commissions.count(), 0, "No commissions created for subscriber"
+        )
 
         # Affiliate (level 1) should receive 10% of 10.00 = 1.00
         level_1_commission = commissions.filter(level=1).first()
@@ -333,14 +335,12 @@ class SubscriptionContentGatingTests(TestCase):
 
     def setUp(self):
         self.user = User.objects.create_user(
-            username="content_user",
-            email="content@example.com",
-            password="pass123"
+            username="content_user", email="content@example.com", password="pass123"
         )
         self.creator = User.objects.create_user(
             username="content_creator",
             email="content_creator@example.com",
-            password="pass123"
+            password="pass123",
         )
         self.plan = Plan.objects.create(
             key="content_plan",
@@ -523,9 +523,7 @@ class CreatorSubscriptionAdminActionTests(TestCase):
         mock_payment = object()
         mock_record_payment.return_value = mock_payment
 
-        queryset = CreatorSubscription.objects.filter(
-            pk=self.creator_subscription.pk
-        )
+        queryset = CreatorSubscription.objects.filter(pk=self.creator_subscription.pk)
         request = self.factory.get("/admin/")
 
         admin_instance = CreatorSubscriptionAdmin(

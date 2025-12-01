@@ -5,6 +5,7 @@ from .models import Profile
 
 User = get_user_model()
 
+
 @receiver(post_save, sender=User)
 def ensure_profile(sender, instance, **kwargs):
     profile, _ = Profile.objects.get_or_create(user=instance)

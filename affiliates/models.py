@@ -35,8 +35,13 @@ class Commission(models.Model):
     Commission record created when distribute_commissions runs.
     Fields match how affiliates.utils.create() expects them: recipient, source_user, level, amount.
     """
-    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name="commissions")
-    source_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="generated_commissions")
+
+    recipient = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="commissions"
+    )
+    source_user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="generated_commissions"
+    )
     level = models.PositiveSmallIntegerField()
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)

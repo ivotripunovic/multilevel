@@ -117,7 +117,7 @@ def profile_view(request):
         pending_approval=False,
     )
     pending_creator_subscriptions = CreatorSubscription.objects.filter(
-        subscriber=request.user, 
+        subscriber=request.user,
         status=CreatorSubscription.STATUS_PENDING,
         pending_approval=True,
     )
