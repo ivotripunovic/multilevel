@@ -1,5 +1,4 @@
 from decimal import Decimal
-import uuid
 
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
@@ -82,9 +81,7 @@ class AffiliateTests(TestCase):
         client = Client()
         referrer = User.objects.create_user(username="ref_get", email="refget@example.com", password="pass")
         ref_profile, _ = Profile.objects.get_or_create(user=referrer)
-        if not ref_profile.referral_code:
-            ref_profile.referral_code = str(uuid.uuid4())[:32]
-            ref_profile.save()
+        ref_profile.refresh_from_db()
         referral_code = ref_profile.referral_code
 
         resp = client.get(f"/affiliates/?ref={referral_code}")
@@ -125,11 +122,7 @@ class AffiliateTests(TestCase):
         referrer = User.objects.create_user(username="referrer", email="ref@example.com", password="pass")
         # Ensure referrer's profile has a referral_code
         ref_profile, _ = Profile.objects.get_or_create(user=referrer)
-        # Make sure there's a referral_code (some implementations default-create one)
-        if not ref_profile.referral_code:
-            ref_profile.referral_code = str(uuid.uuid4())[:32]
-            ref_profile.save()
-
+        ref_profile.refresh_from_db()
         referral_code = ref_profile.referral_code
 
         # Post registration form; adjust form fields if your registration form differs

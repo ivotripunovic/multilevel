@@ -1,4 +1,5 @@
 import uuid
+
 from django.conf import settings
 from django.db import models
 
@@ -6,19 +7,24 @@ User = settings.AUTH_USER_MODEL
 
 
 def _generate_referral_code():
-    # produce a 32-char hex string to fit the CharField(max_length=32)
+    # Legacy helper kept for historical migrations.
     return uuid.uuid4().hex[:32]
 
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
-    # ensure stored default is a 32-char string (hex) not a UUID() object or 36-char string
-    referral_code = models.CharField(max_length=32, unique=True, default=_generate_referral_code)
+    # referral code now mirrors the username so links are human-readable
+    referral_code = models.CharField(max_length=150, unique=True, editable=False)
     # store who referred this user (upline)
     referred_by = models.ForeignKey(
         User, null=True, blank=True, on_delete=models.SET_NULL, related_name="referrals"
     )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if self.user_id and self.user and self.referral_code != self.user.username:
+            self.referral_code = self.user.username
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Profile(user_id={self.user_id}, referral_code={self.referral_code})"

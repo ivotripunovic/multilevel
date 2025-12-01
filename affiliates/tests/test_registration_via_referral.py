@@ -1,5 +1,3 @@
-import uuid
-
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.urls import reverse
@@ -22,9 +20,7 @@ class RegistrationViaReferralLinkTests(TestCase):
         )
         # Ensure profile exists and has referral code
         self.referrer_profile, _ = Profile.objects.get_or_create(user=self.referrer)
-        if not self.referrer_profile.referral_code:
-            self.referrer_profile.referral_code = str(uuid.uuid4())[:32]
-            self.referrer_profile.save()
+        self.referrer_profile.refresh_from_db()
 
     def test_register_get_with_ref_prefills_referral_code(self):
         """GET /accounts/register/?ref=<code> should prefill referral_code in form."""
@@ -108,9 +104,6 @@ class RegistrationViaReferralLinkTests(TestCase):
         # Create user A (referrer)
         user_a = User.objects.create_user(username="user_a_ref", email="a_ref@example.com", password="pass")
         profile_a, _ = Profile.objects.get_or_create(user=user_a)
-        if not profile_a.referral_code:
-            profile_a.referral_code = str(uuid.uuid4())[:32]
-            profile_a.save()
 
         # Register user B via A's referral link
         url = f"{reverse('accounts-register')}?ref={profile_a.referral_code}"
@@ -127,10 +120,6 @@ class RegistrationViaReferralLinkTests(TestCase):
         self.assertEqual(profile_b.referred_by, user_a)
 
         # Register user C via B's referral link
-        if not profile_b.referral_code:
-            profile_b.referral_code = str(uuid.uuid4())[:32]
-            profile_b.save()
-
         url = f"{reverse('accounts-register')}?ref={profile_b.referral_code}"
         response = self.client.post(url, data={
             "username": "user_c_ref",

@@ -9,7 +9,6 @@ Usage:
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.db import transaction
-import uuid
 import random
 
 from affiliates.models import Profile
@@ -72,9 +71,7 @@ class Command(BaseCommand):
 
         # Ensure demo profile exists and has referral code
         demo_profile, _ = Profile.objects.get_or_create(user=demo_user)
-        if not demo_profile.referral_code:
-            demo_profile.referral_code = uuid.uuid4().hex[:12]
-            demo_profile.save()
+        demo_profile.refresh_from_db()
 
         existing_profiles = [demo_profile]
 
@@ -89,10 +86,7 @@ class Command(BaseCommand):
             email = f"{username}@example.com"
             user = User.objects.create_user(username=username, email=email, password=pw)
             prof, _ = Profile.objects.get_or_create(user=user)
-            # make sure profile has referral_code
-            if not prof.referral_code:
-                prof.referral_code = uuid.uuid4().hex[:12]
-                prof.save()
+            prof.refresh_from_db()
 
             # choose a referrer among existing profiles whose depth to demo_user is < 3
             candidates = []
