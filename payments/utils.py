@@ -1,16 +1,37 @@
 from decimal import Decimal
 
-from .models import Payment, Transaction, CompanyRevenue
+from .models import Payment, Transaction, CompanyRevenue, Company
 
 
 RATES_CACHE_TTL = 60 * 60  # 1 hour
 _rates_cache = {"ts": 0, "base": "USD", "rates": {}}
 
 
-def record_payment(company, amount, payer=None, currency="USD", fee=Decimal("0.00"), external_id=None, metadata=None):
+DEFAULT_COMPANY_NAME = "Default Company"
+
+
+def _resolve_company(company):
+    if company:
+        return company
+    existing = Company.objects.order_by("id").first()
+    if existing:
+        return existing
+    return Company.objects.create(name=DEFAULT_COMPANY_NAME)
+
+
+def record_payment(
+    company,
+    amount,
+    payer=None,
+    currency="USD",
+    fee=Decimal("0.00"),
+    external_id=None,
+    metadata=None,
+):
     """
     Create Payment in pending state. Returns Payment instance.
     """
+    company = _resolve_company(company)
     p = Payment.objects.create(
         company=company,
         payer=payer,

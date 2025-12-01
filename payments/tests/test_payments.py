@@ -52,3 +52,7 @@ class PaymentsTests(TestCase):
         rev = compute_company_revenue(self.company)
         expected = (Decimal("100.00") - Decimal("1.00")) + (Decimal("30.00") - Decimal("0.50"))
         self.assertEqual(rev.total_revenue, expected)
+
+    def test_record_payment_without_company_uses_existing_company(self):
+        p = record_payment(company=None, amount="20.00")
+        self.assertEqual(p.company, self.company)
