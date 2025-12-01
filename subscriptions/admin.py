@@ -6,7 +6,7 @@ from payments.utils import record_payment, complete_payment
 
 @admin.register(Plan)
 class PlanAdmin(admin.ModelAdmin):
-    list_display = ("key", "price", "description")
+    list_display = ("key", "name", "price", "billing_period", "active", "created_at")
 
 
 @admin.register(Subscription)
