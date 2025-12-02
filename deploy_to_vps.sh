@@ -18,7 +18,7 @@ PYTHON_BIN="${PYTHON_BIN:-python3}"
 GUNICORN_SOCK="/run/gunicorn_${PROJECT_NAME}.sock"
 SUPERVISOR_CONF="/etc/supervisor/conf.d/${PROJECT_NAME}.conf"
 NGINX_CONF="/etc/nginx/sites-available/${PROJECT_NAME}.conf"
-STATIC_ROOT="${BASE_DIR}/staticfiles"
+STATIC_ROOT="${BASE_DIR}/hello_world/staticfiles"
 ENV_FILE="${BASE_DIR}/.env"
 
 if [ -z "$REPO_URL" ]; then
