@@ -4,7 +4,9 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
 from django.urls import reverse, NoReverseMatch
-
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.contrib import messages
+from decimal import Decimal, InvalidOperation
 
 from affiliates.models import Profile, Commission
 from affiliates import utils as aff_utils
@@ -77,8 +79,14 @@ def login_view(request):
         if form.is_valid():
             user = form.get_user()
             login(request, user)
-            nxt = request.GET.get("next") or request.POST.get("next") or "home"
-            return redirect(nxt)
+            next_url = request.GET.get("next") or request.POST.get("next")
+            if not next_url or not url_has_allowed_host_and_scheme(
+                next_url,
+                allowed_hosts={request.get_host()},
+                require_https=request.is_secure(),
+            ):
+                next_url = reverse("home")
+            return redirect(next_url)
     else:
         form = LoginForm(request)
     return render(request, "accounts/login.html", {"form": form})
@@ -97,25 +105,48 @@ def profile_view(request):
     # Handle creator settings update
     if request.method == "POST":
         is_creator = bool(request.POST.get("is_creator"))
-        profile.is_creator = is_creator
-
         price_raw = request.POST.get("creator_monthly_price", "").strip()
-        if is_creator and price_raw:
-            from decimal import Decimal, InvalidOperation
+        existing_price = profile.creator_monthly_price
 
-            try:
-                price = Decimal(price_raw)
-            except (InvalidOperation, TypeError):
-                price = None
+        if is_creator:
+            # Start from existing price; allow user to leave field blank to keep it.
+            new_price = existing_price
 
-            # Only accept non‑negative prices; you can tighten this later if needed
-            if price is not None and price >= 0:
-                profile.creator_monthly_price = price
-        elif not is_creator:
-            # If user turns off creator status, clear price
+            if price_raw:
+                try:
+                    parsed = Decimal(price_raw)
+                except (InvalidOperation, TypeError):
+                    messages.error(
+                        request, "Please enter a valid monthly price (e.g. 19.99)."
+                    )
+                    return redirect("accounts-profile")
+
+                if parsed <= 0:
+                    messages.error(
+                        request, "Monthly price must be greater than zero."
+                    )
+                    return redirect("accounts-profile")
+
+                new_price = parsed
+
+            # After applying any change, we must have a strictly positive price
+            if not new_price or new_price <= 0:
+                messages.error(
+                    request,
+                    "To be listed as a Pro Tipster you must set a positive monthly price.",
+                )
+                return redirect("accounts-profile")
+
+            profile.is_creator = True
+            profile.creator_monthly_price = new_price
+        else:
+            # Turning off creator status always clears the price
+            profile.is_creator = False
             profile.creator_monthly_price = None
 
         profile.save()
+        messages.success(request, "Creator settings have been updated.")
+        return redirect("accounts-profile")
 
     # Get subscription data
     active_subscriptions = Subscription.objects.filter(
