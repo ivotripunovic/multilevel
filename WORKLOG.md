@@ -1,6 +1,10 @@
 # Workload Plan: Multilevel
 
-## Week 49 - 2025-12-01
+## Week 49
+### Wed 03
+- For user to be shown as creator user must accept that as an attribute on the profile page and set his monthly price.
+
+### Mon 01
 - fixing errors on subscription and content subscription
 - fixing view for payouts
 

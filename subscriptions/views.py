@@ -163,12 +163,23 @@ def checkout_cancel(request):
 
 @login_required
 def subscribe_to_creator(request, creator_id):
-    """Subscribe to a creator's content for $4.99/month."""
+    """Subscribe to a creator's content using their configured monthly price."""
     creator = get_object_or_404(User, id=creator_id)
 
     # Prevent subscribing to yourself
     if creator == request.user:
         messages.error(request, "You cannot subscribe to yourself.")
+        return redirect("accounts-profile")
+
+    # Ensure creator has opted into being a creator and has a price
+    profile = getattr(creator, "profile", None)
+    if not profile or not getattr(profile, "is_creator", False):
+        messages.error(request, "This user is not available as a creator.")
+        return redirect("accounts-profile")
+
+    amount = getattr(profile, "creator_monthly_price", None) or Decimal("0.00")
+    if amount <= 0:
+        messages.error(request, "This creator does not have a valid monthly price set.")
         return redirect("accounts-profile")
 
     # Check if already subscribed
@@ -184,7 +195,6 @@ def subscribe_to_creator(request, creator_id):
         return redirect("accounts-profile")
 
     # Create creator subscription
-    amount = Decimal("4.99")
     csub, created = CreatorSubscription.objects.get_or_create(
         subscriber=request.user,
         creator=creator,

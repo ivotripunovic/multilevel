@@ -94,6 +94,29 @@ def profile_view(request):
     """Display user profile with subscriptions, affiliate info, and commissions."""
     profile = Profile.objects.get(user=request.user)
 
+    # Handle creator settings update
+    if request.method == "POST":
+        is_creator = bool(request.POST.get("is_creator"))
+        profile.is_creator = is_creator
+
+        price_raw = request.POST.get("creator_monthly_price", "").strip()
+        if is_creator and price_raw:
+            from decimal import Decimal, InvalidOperation
+
+            try:
+                price = Decimal(price_raw)
+            except (InvalidOperation, TypeError):
+                price = None
+
+            # Only accept non‑negative prices; you can tighten this later if needed
+            if price is not None and price >= 0:
+                profile.creator_monthly_price = price
+        elif not is_creator:
+            # If user turns off creator status, clear price
+            profile.creator_monthly_price = None
+
+        profile.save()
+
     # Get subscription data
     active_subscriptions = Subscription.objects.filter(
         user=request.user, status=Subscription.STATUS_ACTIVE, pending_approval=False
@@ -125,7 +148,11 @@ def profile_view(request):
     # Get available creators (users with profiles, excluding current user and already subscribed)
     subscribed_creator_ids = active_creator_subscriptions.values_list("creator_id")
     available_creators = (
-        User.objects.filter(profile__isnull=False)
+        User.objects.filter(
+            profile__isnull=False,
+            profile__is_creator=True,
+            profile__creator_monthly_price__gt=0,
+        )
         .exclude(id__in=subscribed_creator_ids)
         .exclude(id=request.user.id)
         .order_by("-date_joined")[:20]
