@@ -203,3 +203,7 @@ PAYMENT_GATEWAY_CONFIG = {
     "api_key": config("PAYMENT_GATEWAY_API_KEY", default=""),
     "webhook_secret": config("PAYMENT_GATEWAY_WEBHOOK_SECRET", default=""),
 }
+
+# Default Company User Configuration
+# Username of the default company user to use as referrer when no referral_code is provided
+DEFAULT_COMPANY_USERNAME = config("DEFAULT_COMPANY_USERNAME", default="company")

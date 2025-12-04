@@ -6,17 +6,51 @@ from django.db.models import Sum
 from django.urls import reverse, NoReverseMatch
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.contrib import messages
+from django.conf import settings
 from decimal import Decimal, InvalidOperation
 
 from affiliates.models import Profile, Commission
 from affiliates import utils as aff_utils
 from subscriptions.models import Plan, Subscription
 from subscriptions.models import CreatorSubscription
+from payments.models import Company
 
 from .forms import RegisterForm, LoginForm
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
+
+
+def get_default_company_user():
+    """
+    Get the default company user to use as referrer.
+    Tries in order:
+    1. User with username from DEFAULT_COMPANY_USERNAME setting
+    2. Owner of the "Default Company"
+    3. First user in the system (by id)
+    Returns None if no user is found.
+    """
+    # Try to get user by configured username
+    default_username = getattr(settings, "DEFAULT_COMPANY_USERNAME", "company")
+    try:
+        return User.objects.get(username=default_username)
+    except User.DoesNotExist:
+        pass
+
+    # Try to get owner of "Default Company"
+    try:
+        default_company = Company.objects.filter(name="Default Company").first()
+        if default_company and default_company.owner:
+            return default_company.owner
+    except Exception:
+        pass
+
+    # Fallback to first user (by id)
+    first_user = User.objects.order_by("id").first()
+    if first_user:
+        return first_user
+
+    return None
 
 
 @require_http_methods(["GET", "POST"])
@@ -53,6 +87,12 @@ def register_view(request):
                     profile.save()
                 except Profile.DoesNotExist:
                     pass
+            else:
+                # If no referral code provided, assign to default company user
+                default_company_user = get_default_company_user()
+                if default_company_user:
+                    profile.referred_by = default_company_user
+                    profile.save()
             login(request, user)
             return redirect("home")
         else:
