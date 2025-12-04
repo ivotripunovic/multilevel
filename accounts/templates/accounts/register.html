@@ -1,12 +1,102 @@
-<!doctype html>
-<html>
-<head><meta charset="utf-8"><title>Register</title></head>
-<body>
-<h1>Register</h1>
-<form method="post">
-  {% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit">Register</button>
-</form>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block title %}Register - Affiliate Marketing Gurus{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+  <h1>Register</h1>
+  
+  <form method="post">
+    {% csrf_token %}
+    
+    {% if form.non_field_errors %}
+      <div class="form-group">
+        <ul class="errorlist">
+          {% for error in form.non_field_errors %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+    
+    <div class="form-group">
+      <label for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+      {{ form.username }}
+      {% if form.username.errors %}
+        <ul class="errorlist">
+          {% for error in form.username.errors %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if form.username.help_text %}
+        <span class="helptext">{{ form.username.help_text }}</span>
+      {% endif %}
+    </div>
+    
+    <div class="form-group">
+      <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+      {{ form.email }}
+      {% if form.email.errors %}
+        <ul class="errorlist">
+          {% for error in form.email.errors %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+    
+    <div class="form-group">
+      <label for="{{ form.password1.id_for_label }}">{{ form.password1.label }}</label>
+      {{ form.password1 }}
+      {% if form.password1.errors %}
+        <ul class="errorlist">
+          {% for error in form.password1.errors %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if form.password1.help_text %}
+        <span class="helptext">{{ form.password1.help_text }}</span>
+      {% endif %}
+    </div>
+    
+    <div class="form-group">
+      <label for="{{ form.password2.id_for_label }}">{{ form.password2.label }}</label>
+      {{ form.password2 }}
+      {% if form.password2.errors %}
+        <ul class="errorlist">
+          {% for error in form.password2.errors %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if form.password2.help_text %}
+        <span class="helptext">{{ form.password2.help_text }}</span>
+      {% endif %}
+    </div>
+    
+    <div class="form-group">
+      <label for="{{ form.referral_code.id_for_label }}">{{ form.referral_code.label }}</label>
+      {{ form.referral_code }}
+      {% if form.referral_code.errors %}
+        <ul class="errorlist">
+          {% for error in form.referral_code.errors %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if form.referral_code.help_text %}
+        <span class="helptext">{{ form.referral_code.help_text }}</span>
+      {% endif %}
+    </div>
+    
+    <button type="submit">Register</button>
+  </form>
+  
+  <div class="auth-links">
+    <p>Already have an account? <a href="{% url 'accounts-login' %}">Login here</a></p>
+    <p><a href="{% url 'home' %}">Back to home</a></p>
+  </div>
+</div>
+{% endblock %}

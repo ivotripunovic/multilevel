@@ -1,24 +1,29 @@
+{% extends "base.html" %}
 {% load django_browser_reload %}
 {% load static %}
 
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Home</title>
-</head>
-<body>
-  <h1>Welcome to affiliate marketing Gurus</h1>
+{% block title %}Home - Affiliate Marketing Gurus{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h1>Welcome to Affiliate Marketing Gurus</h1>
 
   {% if user.is_authenticated %}
-    <p>Signed in as {{ user.username }} — <a href="{% url 'accounts-logout' %}">Log out</a></p>
-    <p><a href="{% url 'accounts-profile' %}">Profile</a></p>
+    <div class="section">
+      <p>Signed in as <strong>{{ user.username }}</strong></p>
+      <p>
+        <a href="{% url 'accounts-profile' %}" class="btn">View Profile</a>
+        <a href="{% url 'accounts-logout' %}" class="btn btn-danger">Log out</a>
+      </p>
+    </div>
   {% else %}
-    <p>
-      <a href="{% url 'accounts-register' %}">Register</a> |
-      <a href="{% url 'accounts-login' %}">Log in</a>
-    </p>
+    <div class="section">
+      <p>Get started with your affiliate marketing journey today!</p>
+      <p>
+        <a href="{% url 'accounts-register' %}" class="btn">Register</a>
+        <a href="{% url 'accounts-login' %}" class="btn">Log in</a>
+      </p>
+    </div>
   {% endif %}
-
-</body>
-</html>
+</div>
+{% endblock %}
