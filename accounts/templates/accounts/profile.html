@@ -1,3 +1,4 @@
+{% load email_filters %}
 <!doctype html>
 <html lang="en">
 <head>
@@ -275,7 +276,7 @@
             <tr>
               <td>{{ item.level }}</td>
               <td>{{ item.user.username }}</td>
-              <td>{{ item.user.email }}</td>
+              <td>{{ item.user.email|mask_email }}</td>
               <td>{{ item.user.date_joined|date:"Y-m-d" }}</td>
             </tr>
           {% endfor %}
