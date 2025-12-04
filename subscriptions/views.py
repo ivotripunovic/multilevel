@@ -15,9 +15,34 @@ from payments.utils import record_payment, complete_payment
 User = get_user_model()
 
 
-# create checkout session (generic)
+@login_required
 def create_checkout_session_for_plan(request, plan_key):
+    """
+    Create a checkout session for a plan, but first ensure the user does not
+    already have an active subscription for the same billing period
+    (monthly/yearly). This prevents users from purchasing multiple concurrent
+    subscriptions of the same period.
+    """
     plan = get_object_or_404(Plan, key=plan_key, active=True)
+
+    # Check for an existing non‑canceled subscription with the same billing period
+    existing_sub = Subscription.objects.filter(
+        user=request.user,
+        # plan__billing_period=plan.billing_period,
+        status__in=[
+            Subscription.STATUS_PENDING,
+            Subscription.STATUS_ACTIVE,
+            Subscription.STATUS_PAST_DUE,
+        ],
+    ).exclude(pending_approval=True).first()
+
+    if existing_sub:
+        messages.warning(
+            request,
+            f"You already have a {plan.get_billing_period_display().lower()} subscription.",
+        )
+        return redirect("accounts-profile")
+
     gateway = get_gateway()
     session = gateway.create_checkout_session(
         request, plan=plan, metadata={"plan_key": plan.key}
