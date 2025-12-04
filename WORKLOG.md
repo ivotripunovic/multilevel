@@ -1,6 +1,12 @@
 # Workload Plan: Multilevel
 
 ## Week 49
+
+### Thr 04
+- check for only one subscription is allowed
+- mask referrals email so they stay anonimus
+- default referral user is our company
+
 ### Wed 03
 - For user to be shown as creator user must accept that as an attribute on the profile page and set his monthly price.
 
