@@ -2,6 +2,9 @@
 
 ## Week 49
 
+### Sat 06
+- moved percentages for affiliate levels to database
+
 ### Thr 04
 - check for only one subscription is allowed
 - mask referrals email so they stay anonimus
