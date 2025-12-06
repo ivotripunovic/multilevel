@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 
-from affiliates.models import Profile, Commission
+from affiliates.models import Profile, Commission, CommissionLevel
 from affiliates import utils as aff_utils
 
 User = get_user_model()
@@ -57,7 +57,7 @@ class AffiliateTests(TestCase):
     def test_distribute_commissions_creates_correct_records(self):
         """
         distribute_commissions should create Commission records for each upline
-        according to aff_utils.LEVEL_RATES and use the correct levels/amounts.
+        according to configured commission levels and use the correct levels/amounts.
         """
         sale_amount = Decimal("100.00")
         # Clear any existing commissions
@@ -70,15 +70,16 @@ class AffiliateTests(TestCase):
             "level"
         )
         # We expect one commission per configured rate (or per available upline)
+        level_rates = aff_utils.get_level_rates()
         expected_upline = aff_utils.get_upline_users(
-            self.user_d, max_levels=len(aff_utils.LEVEL_RATES)
+            self.user_d, max_levels=len(level_rates)
         )
-        expected_count = min(len(expected_upline), len(aff_utils.LEVEL_RATES))
+        expected_count = min(len(expected_upline), len(level_rates))
         self.assertEqual(commissions.count(), expected_count)
 
         for commission in commissions:
             level_idx = commission.level - 1
-            expected_rate = aff_utils.LEVEL_RATES[level_idx]
+            expected_rate = level_rates[level_idx]
             expected_amount = (sale_amount * expected_rate).quantize(Decimal("0.01"))
             self.assertEqual(commission.amount, expected_amount)
             # recipient should match expected upline for that level

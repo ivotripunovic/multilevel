@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 
-from affiliates.models import Profile, Commission
+from affiliates.models import Profile, Commission, CommissionLevel
 from affiliates import utils as aff_utils
 
 User = get_user_model()
@@ -121,15 +121,16 @@ class CommissionDistributionTests(TestCase):
         commissions = Commission.objects.filter(source_user=self.user_d).order_by(
             "level"
         )
+        level_rates = aff_utils.get_level_rates()
         expected_upline = aff_utils.get_upline_users(
-            self.user_d, max_levels=len(aff_utils.LEVEL_RATES)
+            self.user_d, max_levels=len(level_rates)
         )
-        expected_count = min(len(expected_upline), len(aff_utils.LEVEL_RATES))
+        expected_count = min(len(expected_upline), len(level_rates))
 
         self.assertEqual(commissions.count(), expected_count)
 
     def test_distribute_commissions_correct_amounts(self):
-        """Commission amounts should match configured LEVEL_RATES."""
+        """Commission amounts should match configured commission levels."""
         sale_amount = Decimal("100.00")
         Commission.objects.all().delete()
 
@@ -138,10 +139,11 @@ class CommissionDistributionTests(TestCase):
         commissions = Commission.objects.filter(source_user=self.user_d).order_by(
             "level"
         )
+        level_rates = aff_utils.get_level_rates()
 
         for commission in commissions:
             level_idx = commission.level - 1
-            expected_rate = aff_utils.LEVEL_RATES[level_idx]
+            expected_rate = level_rates[level_idx]
             expected_amount = (sale_amount * expected_rate).quantize(Decimal("0.01"))
             self.assertEqual(commission.amount, expected_amount)
 
@@ -155,8 +157,9 @@ class CommissionDistributionTests(TestCase):
         commissions = Commission.objects.filter(source_user=self.user_d).order_by(
             "level"
         )
+        level_rates = aff_utils.get_level_rates()
         expected_upline = aff_utils.get_upline_users(
-            self.user_d, max_levels=len(aff_utils.LEVEL_RATES)
+            self.user_d, max_levels=len(level_rates)
         )
 
         for commission in commissions:
@@ -230,6 +233,14 @@ class CommissionDistributionTests(TestCase):
         self.assertEqual(commissions.count(), 0)
 
     def test_level_rates_configuration(self):
-        """LEVEL_RATES should be configured correctly."""
+        """Commission levels should be configured correctly in the database."""
         expected_rates = [Decimal("0.10"), Decimal("0.05"), Decimal("0.02")]
-        self.assertEqual(aff_utils.LEVEL_RATES, expected_rates)
+        level_rates = aff_utils.get_level_rates()
+        self.assertEqual(level_rates, expected_rates)
+        
+        # Verify database records exist
+        levels = CommissionLevel.objects.filter(active=True).order_by("level")
+        self.assertEqual(levels.count(), 3)
+        for i, level in enumerate(levels):
+            self.assertEqual(level.level, i + 1)
+            self.assertEqual(level.rate, expected_rates[i])

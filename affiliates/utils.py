@@ -3,16 +3,31 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import List, Tuple
 import logging
 
-from .models import Commission, Profile
+from .models import Commission, Profile, CommissionLevel
 
 logger = logging.getLogger(__name__)
 
-# Example level rates; tune per business rules or store in DB/config
-LEVEL_RATES = [
-    Decimal("0.10"),
-    Decimal("0.05"),
-    Decimal("0.02"),
-]  # 10%, 5%, 2% for levels 1..3
+
+def get_level_rates() -> List[Decimal]:
+    """
+    Fetch commission rates from the database, ordered by level.
+    Returns a list of Decimal rates for levels 1, 2, 3, etc.
+    Falls back to default rates if no rates are configured in the database.
+    """
+    try:
+        levels = CommissionLevel.objects.filter(active=True).order_by("level")
+        if levels.exists():
+            rates = [level.rate for level in levels]
+            logger.debug("Loaded %d commission levels from database", len(rates))
+            return rates
+        else:
+            # Fallback to default rates if no levels are configured
+            logger.warning("No commission levels found in database, using defaults")
+            return [Decimal("0.10"), Decimal("0.05"), Decimal("0.02")]
+    except Exception as exc:
+        logger.exception("Error loading commission levels from database: %s", exc)
+        # Fallback to default rates on error
+        return [Decimal("0.10"), Decimal("0.05"), Decimal("0.02")]
 
 
 def get_upline_users(user, max_levels=None) -> List[Tuple[object, int]]:
@@ -61,7 +76,8 @@ def get_upline_users(user, max_levels=None) -> List[Tuple[object, int]]:
 def distribute_commissions(source_user, amount):
     """
     Distribute commissions for a given amount paid/recorded by source_user.
-    Creates Commission records for each applicable upline level based on LEVEL_RATES.
+    Creates Commission records for each applicable upline level based on CommissionLevel
+    records in the database.
     Returns number of created Commission objects (useful for tests / debugging).
     """
     if not isinstance(amount, Decimal):
@@ -80,7 +96,8 @@ def distribute_commissions(source_user, amount):
         logger.debug("Amount <= 0, nothing to distribute")
         return 0
 
-    max_levels = len(LEVEL_RATES)
+    level_rates = get_level_rates()
+    max_levels = len(level_rates)
     upline = get_upline_users(source_user, max_levels=max_levels)
     logger.debug(
         "Computed upline for %r: %s",
@@ -91,7 +108,7 @@ def distribute_commissions(source_user, amount):
     created = 0
     for recipient, level in upline:
         try:
-            rate = LEVEL_RATES[level - 1]
+            rate = level_rates[level - 1]
         except IndexError:
             logger.debug("No rate for level %d, stopping", level)
             break

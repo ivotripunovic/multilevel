@@ -58,3 +58,28 @@ class Commission(models.Model):
 
     def __str__(self):
         return f"Commission(recipient={getattr(self.recipient, 'username', self.recipient)}, amount={self.amount}, level={self.level})"
+
+
+class CommissionLevel(models.Model):
+    """
+    Stores commission rates for each level in the affiliate system.
+    Level 1 is the direct referrer, level 2 is referrer's referrer, etc.
+    """
+
+    level = models.PositiveSmallIntegerField(unique=True, help_text="Commission level (1 = direct referrer, 2 = referrer's referrer, etc.)")
+    rate = models.DecimalField(
+        max_digits=3,
+        decimal_places=2,
+        help_text="Commission rate as a decimal (e.g., 0.10 for 10%)"
+    )
+    active = models.BooleanField(default=True, help_text="Whether this level is currently active")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("level",)
+        verbose_name = "Commission Level"
+        verbose_name_plural = "Commission Levels"
+
+    def __str__(self):
+        return f"Level {self.level}: {self.rate * 100}%"
